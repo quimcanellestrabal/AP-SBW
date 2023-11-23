@@ -142,7 +142,9 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
     preoutbreak = params$preoutbreak
     outbreak = 12 - params$current.duration
     duration.last.outbreak = outbreak + params$current.duration
-    phase = "collapse"
+    phase = ifelse(calm>0, "calm",
+                   ifelse(preoutbreak>0, "preoutbreak",
+                          ifelse(outbreak>0, "outbreak","collapse")))
     done = T
     
     ## Record initial distributions:
@@ -197,7 +199,7 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       
       ##################################### PROCESSES OF CHANGE #####################################
       ### 1. SBW module
-
+browser()
       if(is.sbw){
         cat ("  B.1. SBW \n")
         sbw.out <- integer()

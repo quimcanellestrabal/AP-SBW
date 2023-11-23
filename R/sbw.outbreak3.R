@@ -18,9 +18,11 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     potential = filter(land, ny.def0>=5, tssbw>=30, spp %in% c("SAB", "EPN"), temp>0.5, temp<2.8)
     
     #Primers epicentres
-    sbw.new.sprd = sample(potential$cell.id, size=rdunif(1,4,7-preoutbreak), replace=F,prob=potential$ny.def0*(1200-potential$elev)/100)
+    sbw.new.sprd = sample(potential$cell.id, size=rdunif(1,4,7-preoutbreak), replace=F,
+                          prob=potential$ny.def0*(1200-potential$elev)/100)
  
     ## find between 20 to 40 neighs and add to sbw.new.sprd
+    ## @nú: make a for so each epicenter core has a different size indicated by the k parameter!
     neighs = nn2(dplyr::select(land,x,y), filter(land, cell.id %in% sbw.new.sprd) %>% dplyr::select(x,y),
                  k=rdunif(1,20,40) , searchtype='priority')  #test ##neighs sobre "land" perquè són el màxim des cells on SBW podria anar independenment de la disponibilitat prevista a "potential"
     nn.indx = neighs[[1]]
