@@ -1,0 +1,21 @@
+Package: AP-SBW
+Type: Package
+Title: Forest plot dynamics and scenario analysis
+Version: 1.2.0
+Date: 2023-06-29
+Authors@R: c(
+	person('Miquel', 'De Caceres', role=c('aut','cre'),
+	email='miquelcaceres@gmail.com'),
+	person('Núria', 'Aquilué', role=c('aut'),
+	email='nuria.aquilue@ctfc.cat'),
+	person('Giuseppe', 'Capizzi', role=c('aut'),
+	email='giuseppe.capizzi@ctfc.cat'))
+Description: Implements routines for reading/processing tree data and simulating tree dynamics for Spanish Forest Inventory (IFN) plots.
+License: GPL (>= 2)
+Encoding: UTF-8
+Depends: R (>= 3.5.0)
+Imports: ggplot2, tidyr, dplyr, tibble, spdep
+Suggests: knitr, rmarkdown
+LazyData: true
+RoxygenNote: 7.2.1
+VignetteBuilder: utils, knitr
