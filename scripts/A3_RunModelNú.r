@@ -4,7 +4,7 @@ setwd("C:/Users/nuria.aquilue/OneDrive - ctfc.cat/QBCMOD/AP-SBW/AP-SBW")
 devtools::load_all()
 
 
-source("R/ap-sbw.r")
+# source("R/ap-sbw.r")
 
 scn="scn0"; 
 nrun=1; 
@@ -18,5 +18,10 @@ is.harvloc=F
 save.land=T; 
 time.save=10;
 out.path="outputs/test1_s0"
+params = default.params()
 params$current.duration = 0
 
+## Run 
+r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, is.harvloc=F, is.harvprem=F, custom.params=NA, rcp='rcp45', 
+             nrun=1, time.step=1, time.horizon=80, save.land=F, time.save=5, out.path=NA )
+  
