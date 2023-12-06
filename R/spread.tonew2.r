@@ -1,4 +1,5 @@
-spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w.host){
+spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w.host,
+                        reduc.nnew.outbreak, reduc.nnew.preoutbreak){
   
   # cat("SBW adjacent spreading", "\n" )
   
@@ -9,7 +10,7 @@ spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w
   ##      (and perhaps wind direction in future versions)
   ## The question is, how many cells do I have to select from the pool of potential cells?
   ## It should be a number of cells proportional to the number of cells defoliated in the previous year¿?
-  
+  browser()
   ## Compute neighborhood current defoliation and neighborhood host preference
   potential = neigh.influence.sbw.spread(land, nc, side, radius)
   
@@ -20,7 +21,7 @@ spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w
     (1-pmax(w.wind+w.host,1)) * rescale(potential$neigh.curr.def, to=c(0,1))
   
   ## Select only those cells that at least one neighbor is defoliated
-  potential = filter(potential, neigh.curr.def>0, x>0)
+  potential = potential[potential$neigh.curr.def>0 & potential$x>0,]
   if(nrow(potential)>1){
     if(outbreak<=10){  ## consolidated part of the outbreak
       #nnew = pmin(nrow(potential), sum(na.omit(land$curr.intens.def)>0)*runif(1, 0.15, 0.45)) #valors originals
@@ -34,8 +35,11 @@ spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w
     }
     sbw.new.sprd = sample(potential$cell.id, round(num.new), replace=F, prob=potential$x)
   }
-  else
+  else if(nrow(potential)==1){
     sbw.new.sprd = potential$cell.id
-  
+  } else{
+    sbw.new.sprd = integer()
+  }
+    
   return(sbw.new.sprd)
 }
