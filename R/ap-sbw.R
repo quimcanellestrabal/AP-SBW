@@ -29,7 +29,13 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   #################        0. LOAD INITIAL ARGUMENTS        #################
   
   #Library
-  library(dplyr); library(tidyr); library(stringr); library(RANN); library(sp); library(raster); library(reshape); library(purrr); library(scales)
+  library(stringr)
+  library(RANN)
+  library(sp)
+  library(raster)
+  # library(reshape)
+  library(scales)
+  library(tidyverse) 
   options(dplyr.summarise.inform=F)
   
   #Functions
@@ -139,7 +145,7 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
     outbreak = params$outbreak    
     collapse = params$collapse    
     calm = params$calm
-    phase = ifelse(params$preoutbreak>0, "preoutbreak",
+    current.phase = ifelse(params$preoutbreak>0, "preoutbreak",
                    ifelse(params$outbreak>0, "outbreak", 
                           ifelse(params$calm>0, "calm",
                                  ifelse(params$collapse>0, "collapse", 
@@ -149,9 +155,9 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
     aux =  group_by(land, curr.intens.def) %>% summarize(ncell=length(cell.id)) %>% mutate(pct=NA)
     aux$pct[aux$curr.intens.def==0] = NA
     aux$pct[aux$curr.intens.def!=0] = aux$ncell[aux$curr.intens.def!=0] / sum(na.omit(land$curr.intens.def>0))
-    track.sbw.defol.intens.sm = rbind(track.sbw.defol.intens.sm, data.frame(run=irun, year=params$year.ini, phase=phase, aux))
+    track.sbw.defol.intens.sm = rbind(track.sbw.defol.intens.sm, data.frame(run=irun, year=params$year.ini, phase=current.phase, aux))
     if(any(land$cum.intens.def>0)){
-      track.sbw.defol.intens = rbind(track.sbw.defol.intens, data.frame(run=irun, year=params$year.ini, phase=phase,
+      track.sbw.defol.intens = rbind(track.sbw.defol.intens, data.frame(run=irun, year=params$year.ini, phase=current.phase,
                                                                         filter(land, curr.intens.def>0) %>% select(cell.id, spp, curr.intens.def, bioclim.domain)))      
     }
     track.spp = rbind(track.spp, cbind(data.frame(run=irun, year=params$year.ini),
@@ -381,6 +387,12 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       
       
   cat(paste0("       end of Time step: ", params$year.ini+t-time.step, "-", t+params$year.ini,"  \n"))
+  
+      ## Stop the current run if phase changes
+      if(params$stop.end.phase & current.phase!=phase){
+       break()
+      }
+      current.phase = phase
   
     }#end t
     
