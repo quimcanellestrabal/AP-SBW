@@ -22,7 +22,7 @@
 
 ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE, is.harvprem = FALSE,
                    custom.params = NA, rcp = NA, nrun = 1, time.step = 1, time.horizon = 80, 
-                   save.land = FALSE, time.save=5, out.path = NA){
+                   save.land = FALSE, time.save=5, out.path = NA, landscape=NULL){
   
   
   ###########################################################################
@@ -51,11 +51,12 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   
   #Data
   load("data/mask.rda")
-  load("data/landscape.rda")
   load("data/prec_rcp45_ouranos.rda")
   load("data/temp_rcp45_ouranos.rda")
   load("data/default.tables2.rda")
-  
+  if(is.null(landscape)){
+    load("data/landscape.rda")
+  }
   
   #####################################################################
   #################        1. DATA PREPARATION        #################
@@ -143,16 +144,19 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
                           ifelse(params$calm>0, "calm",
                                  ifelse(params$collapse>0, "collapse", 
                                         stop("At least one phase has to have an initial duration")))))
-    
+
     ## Record initial distributions:
-    ncell.def = c(NA, rep(sum(na.omit(land$curr.intens.def>0)),3))
-    track.sbw.defol.intens.sm = rbind(track.sbw.defol.intens.sm, data.frame(run=irun, year=params$year.ini, phase=phase, group_by(land, curr.intens.def) %>% 
-                                                                              summarize(ncell=length(cell.id)) %>% mutate(pct=ncell/ncell.def)))
-    track.sbw.defol.intens = rbind(track.sbw.defol.intens, data.frame(run=irun, year=params$year.ini, phase=phase,
-                                                                      filter(land, curr.intens.def>0) %>% dplyr::select(cell.id, spp, curr.intens.def,bioclim.domain)))
+    aux =  group_by(land, curr.intens.def) %>% summarize(ncell=length(cell.id)) %>% mutate(pct=NA)
+    aux$pct[aux$curr.intens.def==0] = NA
+    aux$pct[aux$curr.intens.def!=0] = aux$ncell[aux$curr.intens.def!=0] / sum(na.omit(land$curr.intens.def>0))
+    track.sbw.defol.intens.sm = rbind(track.sbw.defol.intens.sm, data.frame(run=irun, year=params$year.ini, phase=phase, aux))
+    if(any(land$cum.intens.def>0)){
+      track.sbw.defol.intens = rbind(track.sbw.defol.intens, data.frame(run=irun, year=params$year.ini, phase=phase,
+                                                                        filter(land, curr.intens.def>0) %>% select(cell.id, spp, curr.intens.def, bioclim.domain)))      
+    }
     track.spp = rbind(track.spp, cbind(data.frame(run=irun, year=params$year.ini),
-                                       pivot_wider(as.data.frame.table(table(land$spp)), names_from = Var1, values_from = Freq)))
-    
+                                       pivot_wider(as.data.frame.table(table(land$spp)), 
+                                                   names_from = Var1, values_from = Freq)))
 
     ## Simulation per time step ##
     for(t in time.seq){
