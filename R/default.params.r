@@ -52,6 +52,10 @@ default.params = function(){
   niche.good = 0.6,
   niche.poor = 0.3,
   
+  ## Number of neighbours in each bubble around the epicenters
+  kmin.bubble = 200,
+  kmax.bubble = 2000,
+  
   ## Spreading radius 
   # radius.preoutbreak.mid = 10, # radius for the spreading in the preoutbreak phase: mid point (in number of cells)
   # radius.preoutbreak.range = 5, # radius for the spreading in the preoutbreak phase: range (in number of cells)

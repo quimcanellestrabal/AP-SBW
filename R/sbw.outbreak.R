@@ -22,40 +22,41 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   cat("   Defoliation in the ")
   if(preoutbreak>0){
     cat("pre-epidemic phase ", "\n")
-    # preoutbreak=5
-    
+
     #Potential són les cells en què hi pot haver sbw. Tota la funció s'aplica a "potential" i no a "land"
     potential = filter(land, ny.def0>=5, tssbw>=30, spp %in% c("SAB", "EPN"), temp>0.5, temp<2.8)
     
-    #Primers epicentres
-    sbw.new.sprd = sample(potential$cell.id, size=rdunif(1,4,7-preoutbreak), replace=F,
+    # First epicentres
+    epicenter = sample(potential$cell.id, size=rdunif(1,4,preoutbreak), replace=F,
                           prob=potential$ny.def0*(1200-potential$elev)/100)
- 
-    ## find between 20 to 40 neighs and add to sbw.new.sprd
-    ## @nú: make a for so each epicenter core has a different size indicated by the k parameter!
-    neighs = nn2(dplyr::select(land,x,y), filter(land, cell.id %in% sbw.new.sprd) %>% dplyr::select(x,y),
-                 k=rdunif(1,20,40) , searchtype='priority')  #test ##neighs sobre "land" perquè són el màxim des cells on SBW podria anar independenment de la disponibilitat prevista a "potential"
-    nn.indx = neighs[[1]]
-    sbw.new.sprd = land$cell.id[nn.indx]
-    sbw.new.sprd = unique(sbw.new.sprd)
+    sbw.new.sprd = epicenter
     
-    # just give some intensity to the core of the epicenters
-    land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
-      sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1))
+    ## Find between 20 to 40 neighs for teach epicenter and add to sbw.new.sprd.
+    ## Each epicenter core has a different size indicated by the kmin and kmax parameters!
+    for(i in 1:length(epicenter)){
+      neighs = nn2(land[,c("x", "y")], land[land$cell.id==epicenter[i], c("x", "y")],
+                   k=rdunif(1, params$kmin.bubble, params$kmax.bubble) , searchtype='priority')  
+      nn.indx = neighs[[1]]
+      sbw.new.sprd = unique(c(sbw.new.sprd, land$cell.id[nn.indx]))
+    }
+
+      # # just give some intensity to the core of the epicenters
+      # land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
+      #   sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1))
+      # 
+      # # add some neighs of these epicenters #Quim radi a 8 (mida original = 12)
+      # sbw.new.sprd = c(sbw.new.sprd, 
+      #                  spread.tonew(land, nc=ncol(mask), side=cell.size.km, 
+      #                               radius=8, outbreak, preoutbreak))
+      # sbw.new.sprd = unique(sbw.new.sprd)
     
-    # add some neighs of these epicenters #Quim radi a 8 (mida original = 12)
-    sbw.new.sprd = c(sbw.new.sprd, 
-                     spread.tonew(land, nc=ncol(mask), side=cell.size.km, 
-                                  radius=8, outbreak, preoutbreak))
-    sbw.new.sprd = unique(sbw.new.sprd)
-    
-    #Select sbw.new.sprd only on potential cells
+    # Select sbw.new.sprd only on potential cells
     potential = filter(land, spp %in% c("SAB", "EPN"))
     sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% potential$cell.id]
     
     # and finally assign intensity to all of them (rewrite intensity just assigned to epicenter cores)
     land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
-      sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1)) ###COMPROVAR AQUESTES PROPORCIONS!
+      sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1))
   }
 
   if(outbreak>0){
@@ -175,22 +176,22 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   
   
   ## 8. Set outbreak parameters
-  if(preoutbreak>0){ # pre-epidemic
+  if(preoutbreak>0){ 
     preoutbreak = preoutbreak-1
     phase = "preoutbreak"
     if(preoutbreak==0)
       duration.last.outbreak = outbreak = rdunif(1,0,2)+params$duration.last.outbreak  # +6 Gray2008 #Quim: ho he canviat (outbreak entre 9 i 11), l'original era "rdunif(1,-1,2) (outbreak entre 8 i 10"
   }
-  else if(outbreak>0){ # epidemia
+  else if(outbreak>0){ 
     outbreak = outbreak-1
     phase = "outbreak"
     if(outbreak==0)
       collapse = rdunif(1,4,6) #Original entre 3 i 6
   }
-  else if(collapse>0){  # collapse
+  else if(collapse>0){  
     phase = "collapse"
     collapse = collapse-1
-    if(collapse==0) #finishing the collapse
+    if(collapse==0) 
       calm = round(rnorm(1, 15, 2))
   }
   else if(calm>0){
