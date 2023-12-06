@@ -37,6 +37,9 @@ default.params = function(){
   year.ini = 2020,
   time.step = 1,
   
+  ## Stop running the model at the end of any sbw phase
+  stop.end.phase = F,
+  
   ## SPRUCE BUDWORM parameters:  
   duration.last.outbreak = 9,
   preoutbreak = 0,  # number of years lasting of this phase
