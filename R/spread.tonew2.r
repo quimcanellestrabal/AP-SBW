@@ -10,7 +10,7 @@ spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w
   ##      (and perhaps wind direction in future versions)
   ## The question is, how many cells do I have to select from the pool of potential cells?
   ## It should be a number of cells proportional to the number of cells defoliated in the previous year¿?
-  browser()
+
   ## Compute neighborhood current defoliation and neighborhood host preference
   potential = neigh.influence.sbw.spread(land, nc, side, radius)
   
