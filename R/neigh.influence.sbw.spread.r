@@ -20,7 +20,7 @@ neigh.influence.sbw.spread = function(land, nc=804, side=2, radius=12){
   w = w[w!=0]
   
   ## Look at current level of the defoliation in the neighborhood of the cells not 
-  ## currently defoliated and that last mortality by oubreak is at least 30 years.
+  ## currently defoliated and that last mortality by outbreak is at least 30 years.
   potential = filter(land, ny.def0>=5, tssbw>=30)
   nslice = 10
   upper = round(nrow(potential)/nslice)
