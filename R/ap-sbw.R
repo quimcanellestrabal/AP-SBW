@@ -21,9 +21,8 @@
 
 
 ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE, is.harvprem = FALSE,
-                       custom.params = NA, rcp = NA, 
-                       nrun = 1, time.step = 1, time.horizon = 80, 
-                       save.land = FALSE, time.save=5, out.path = NA, ...){
+                   custom.params = NA, rcp = NA, nrun = 1, time.step = 1, time.horizon = 80, 
+                   save.land = FALSE, time.save=5, out.path = NA){
   
   
   ###########################################################################
@@ -72,24 +71,25 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       out.seq <- seq(1, time.horizon, time.save) 
       if(!all(out.seq %in% time.seq)){warning("Not all time steps in the output sequence provided are simulated.", call.=F)}
       if(is.na(out.path)) stop("Directory path to save outputs not provided") } 
-  if(!(save.land)) {out.seq=0}
+  if(!(save.land)){
+    out.seq=0
+  }
 
-  
   ### 1.2. CELL RESOLUTION ###
   km2.pixel <- raster::res(mask)[1] * raster::res(mask)[2] / 10^6
   
   ### 1.3. PARAMETERS ###
   ## Get the list of default parameters and update user-initialized parameters
   params <- default.params()
-  if(!is.na(custom.params)){
+  if(!any(is.na(custom.params))){
     # Check class of custom.params
-    if((!inherits(customParams, "list"))) {
+    if((!inherits(custom.params, "list"))) {
       stop("'custom.params' must be a named list")
     }
     ## Check that the names of the customized parameters are correct
     if(!all(names(custom.params) %in% names(params)))
       stop("Wrong custom parameters names")
-    params <- custom.param
+    params <- custom.params
   }
   
   ### 1.4. SET CLIMATIC PROJECTIONS ###
@@ -136,15 +136,17 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
     
     
     ### SBW
-    ## Decide (top-down) duration of the current outbreak, epidemic phase and collapse
-    collapse = rdunif(1,4,6)-params$collapse #otiginal entre 3 i 6
+    ## Mark the initial sbw phase
+    duration.last.outbreak = params$outbreak + params$current.duration
+    preoutbreak = params$preoutbreak 
+    outbreak = params$outbreak    
+    collapse = params$collapse    
     calm = params$calm
-    preoutbreak = params$preoutbreak
-    outbreak = 12 - params$current.duration
-    duration.last.outbreak = outbreak + params$current.duration
-    phase = ifelse(calm>0, "calm",
-                   ifelse(preoutbreak>0, "preoutbreak",
-                          ifelse(outbreak>0, "outbreak","collapse")))
+    phase = ifelse(params$preoutbreak>0, "preoutbreak",
+                   ifelse(params$outbreak>0, "outbreak", 
+                          ifelse(params$calm>0, "calm",
+                                 ifelse(params$collapse>0, "collapse", 
+                                        stop("At least one phase has to have an initial duration")))))
     done = T
     
     ## Record initial distributions:
@@ -199,21 +201,18 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       
       ##################################### PROCESSES OF CHANGE #####################################
       ### 1. SBW module
-browser()
       if(is.sbw){
         cat ("  B.1. SBW \n")
         sbw.out <- integer()
-        sbw.out <- sbw.outbreak(land, params, tbls, preoutbreak, outbreak, calm, collapse, duration.last.outbreak, done, mask)
-        
+        sbw.out <- sbw.outbreak(land, params, tbls, preoutbreak, outbreak, calm, collapse, duration.last.outbreak, mask)
         kill.cells = sbw.out$kill.cells
         land.sbw = sbw.out$land.sbw    
         preoutbreak = sbw.out$preoutbreak 
         outbreak = sbw.out$outbreak    
         collapse = sbw.out$collapse    
         calm = sbw.out$calm
-        phase = ifelse(calm>0, "calm",
-                       ifelse(preoutbreak>0, "preoutbreak",
-                              ifelse(outbreak>0, "outbreak","collapse")))
+        phase = ifelse(preoutbreak>0, "preoutbreak",  ifelse(outbreak>0, "outbreak",
+                       ifelse(calm>0, "calm","collapse")))
         
         ## Tracking sbw.defol.intens
         if(sum(na.omit(land.sbw$curr.intens.def))>0){
