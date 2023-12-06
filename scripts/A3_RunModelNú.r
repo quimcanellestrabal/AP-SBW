@@ -19,9 +19,9 @@ save.land=T;
 time.save=10;
 out.path="outputs/test1_s0"
 params = default.params()
-params$current.duration = 0
+params$outbreak = 12   # so it will start with outbreak phase
 
 ## Run 
-r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, is.harvloc=F, is.harvprem=F, custom.params=NA, rcp='rcp45', 
+r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, is.harvloc=F, is.harvprem=F, custom.params=params, rcp='rcp45', 
              nrun=1, time.step=1, time.horizon=80, save.land=F, time.save=5, out.path=NA )
   
