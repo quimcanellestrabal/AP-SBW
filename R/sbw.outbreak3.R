@@ -3,8 +3,7 @@
 
 sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, collapse=1, 
                         duration.last.outbreak=1, mask=NA){
-  cat("   SBW outbreak: ", "\n")
-  done = T
+
   # 0.  Fix function  
   `%notin%` = Negate(`%in%`)
 
@@ -54,16 +53,6 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     potential = filter(land, spp %in% c("SAB", "EPN"))
     sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% potential$cell.id]
     
-    #per coincidir amb els valors observats a SBW històric, han de ser entre 200-2000píxels (=800-16000km2)
-    #es prioritzen els punts defoliats els anys anteriors (prob=aux$ny.def)
-    sz = rdunif(1,200,4000)
-    if(sz <= length(sbw.new.sprd)){
-      sbw.new.sprd = sample(sbw.new.sprd, size=sz, replace=F)
-    }
-    else
-      sbw.new.sprd = sbw.new.sprd
-    
-    
     # and finally assign intensity to all of them (rewrite intensity just assigned to epicenter cores)
     land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
       sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1)) ###COMPROVAR AQUESTES PROPORCIONS!
@@ -79,14 +68,14 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
                                 params$w.wind, params$w.host, params$reduc.nnew.outbreak, params$reduc.nnew.preoutbreak)
     sbw.new.sprd = unique(sbw.new.sprd)
     
-    ## Only if some new cells are defoliated, assing level of defoliaton
+    ## Only if some new cells are defoliated, assign level of defoliation
     if(length(sbw.new.sprd)>0){
       ## Select sbw.new.sprd only on potential cells
       potential = filter(land, spp %in% c("SAB", "EPN"))
       sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% potential$cell.id]
       
       ## Level of defoliation of the cells recently integrated in the outbreak (the sbw.new.spread cells)
-      ## It can be 0 (no-defol), 1, 2 or 3!
+      ## It can be 0 (no-defoliation), 1, 2 or 3!
       land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
         sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1)) 
     }
@@ -180,30 +169,31 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   if(outbreak>0 | collapse>0){
     kill.cells = forest.mortality(land)
   }
-  else
-  {kill.cells = integer()}
+  else{
+    kill.cells = integer()
+  }
   
   
   ## 8. Set outbreak parameters
-  if(preoutbreak>0 & done){ # pre-epidemic
+  if(preoutbreak>0){ # pre-epidemic
     preoutbreak = preoutbreak-1
     phase = "preoutbreak"
     if(preoutbreak==0)
       duration.last.outbreak = outbreak = rdunif(1,0,2)+params$duration.last.outbreak  # +6 Gray2008 #Quim: ho he canviat (outbreak entre 9 i 11), l'original era "rdunif(1,-1,2) (outbreak entre 8 i 10"
   }
-  else if(outbreak>0 & done){ # epidemia
+  else if(outbreak>0){ # epidemia
     outbreak = outbreak-1
     phase = "outbreak"
     if(outbreak==0)
       collapse = rdunif(1,4,6) #Original entre 3 i 6
   }
-  else if(collapse>0 & done){  # collapse
+  else if(collapse>0){  # collapse
     phase = "collapse"
     collapse = collapse-1
     if(collapse==0) #finishing the collapse
       calm = round(rnorm(1, 15, 2))
   }
-  else if(calm>0 & done){
+  else if(calm>0){
     phase = "calm"
     calm = calm-1    
     if(calm==0)
