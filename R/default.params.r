@@ -39,13 +39,29 @@ default.params = function(){
   
   ## SPRUCE BUDWORM parameters:  
   duration.last.outbreak = 9,
-  current.duration = 12, # from 2011 to 2020, but 14 if from 2007 to 2020
-  collapse = 0,
-  calm = 0,
-  preoutbreak = 0,
+  preoutbreak = 0,  # number of years lasting of this phase
+  outbreak = 0,     # number of years lasting of this phase
+  collapse = 0,     # number of years lasting of this phase, usually rdunif(1,4,6)
+  calm = 0,         # number of years lasting of this phase
+  current.duration = 0,  # number of years with active sbw
+      # 12 if simulating from 2011 to 2020, but 14 if from 2007 to 2020
   niche.opt = 1,
   niche.good = 0.6,
   niche.poor = 0.3,
+  
+  ## Spreading radius 
+  # radius.preoutbreak.mid = 10, # radius for the spreading in the preoutbreak phase: mid point (in number of cells)
+  # radius.preoutbreak.range = 5, # radius for the spreading in the preoutbreak phase: range (in number of cells)
+  radius.outbreak.mid = 10, # radius for the spreading in the outbreak phase: mid point (in number of cells)
+  radius.outbreak.range = 5, # radius for the spreading in the outbreak phase: range (in number of cells)
+  
+  ## Number of new spreading to cells 
+  reduc.nnew.preoutbreak = 0, # number between 0 and 1, to indicate the reduction in number of cells that sbw does not actually spread
+  reduc.nnew.outbreak = 0,
+  
+  ## Weights of the factors influencing sbw spreading
+  w.wind = 0, 
+  w.host = 0,
   
   ## VEGETATION DYNAMICS parameters:
   enable.succ = TRUE, # enable natural succession every 40 years (if FLASE, composition remains the same)
