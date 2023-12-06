@@ -29,7 +29,7 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   #################        0. LOAD INITIAL ARGUMENTS        #################
   
   #Library
-  library(dplyr); library(tidyr); library(stringr); library(RANN); library(sp); library(raster); library(reshape); library(purrr)
+  library(dplyr); library(tidyr); library(stringr); library(RANN); library(sp); library(raster); library(reshape); library(purrr); library(scales)
   options(dplyr.summarise.inform=F)
   
   #Functions
@@ -125,17 +125,13 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   cat("\n") 
   cat(paste("B. Simulations ...\n"))
   
-  irun=1
   for(irun in 1:nrun){
 
     ## Main landscape data frame 
-    tbls <- default.tables
-    land <- landscape
-    land$transition=NA  #***o aquí o després de t{}
-    land$year_change=NA #***o aquí o després de t{}
+    tbls = default.tables
+    land = landscape
+    land$year_change=NA 
     
-    
-    ### SBW
     ## Mark the initial sbw phase
     duration.last.outbreak = params$outbreak + params$current.duration
     preoutbreak = params$preoutbreak 
@@ -147,7 +143,6 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
                           ifelse(params$calm>0, "calm",
                                  ifelse(params$collapse>0, "collapse", 
                                         stop("At least one phase has to have an initial duration")))))
-    done = T
     
     ## Record initial distributions:
     ncell.def = c(NA, rep(sum(na.omit(land$curr.intens.def>0)),3))
@@ -158,20 +153,16 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
     track.spp = rbind(track.spp, cbind(data.frame(run=irun, year=params$year.ini),
                                        pivot_wider(as.data.frame.table(table(land$spp)), names_from = Var1, values_from = Freq)))
     
-    
-    
-    ##############################
+
     ## Simulation per time step ##
-    t=1
     for(t in time.seq){
       
       ## Print replicate and time step
       cat("\n") 
       cat(paste0("Replicate ", irun, "/", nrun,". Time step: ", params$year.ini+t-time.step, "-", t+params$year.ini, " Scn: ",scn,"\n"))
       
-      ###2.1. SET LAND TRANSITION AND LAND NEWSPP 
+      ### 2.1. SET LAND TRANSITION AND LAND NEWSPP 
       land$transition=NA
-      #land$year_change=NA
       land$new_spp = NA
       
       ### 2.2. UPDATE CLIMATIC VARIABLES ###
@@ -203,8 +194,8 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       ### 1. SBW module
       if(is.sbw){
         cat ("  B.1. SBW \n")
-        sbw.out <- integer()
-        sbw.out <- sbw.outbreak(land, params, tbls, preoutbreak, outbreak, calm, collapse, duration.last.outbreak, mask)
+        sbw.out = integer()
+        sbw.out = sbw.outbreak(land, params, tbls, preoutbreak, outbreak, calm, collapse, duration.last.outbreak, mask)
         kill.cells = sbw.out$kill.cells
         land.sbw = sbw.out$land.sbw    
         preoutbreak = sbw.out$preoutbreak 
