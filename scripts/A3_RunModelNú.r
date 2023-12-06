@@ -5,7 +5,8 @@ devtools::load_all()
 
 ## Change some default parameters
 params = default.params()
-params$outbreak = 12   # so it will start with outbreak phase
+params$preoutbreak = 4   # so it will start with the preoutbreak phase
+# params$preoutbreak = 12   # so it will start with the outbreak phase
 params$w.host = 1
 params$stop.end.phase = T
 
