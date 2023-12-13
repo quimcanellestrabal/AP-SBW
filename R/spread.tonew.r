@@ -17,8 +17,10 @@ spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w
   ## The probability of sbw spread into a cell is proportional to neigh.curr.def, neigh.host.pref and 
   ## dominant wind directions
   ## Rescale the variables to the range [0,1] before applying any weight
+  ## 0 should be replaced by the wind factor that will depend on the angle between the target and source cells
+  ## (and of course, the main wind default direction)
   potential$x = w.wind * 0 + w.host * rescale(potential$neigh.host.pref, to=c(0,1)) +
-    (1-pmax(w.wind+w.host,1)) * rescale(potential$neigh.curr.def, to=c(0,1))
+    (1-pmin(w.wind+w.host,1)) * rescale(potential$neigh.curr.def, to=c(0,1))
   
   ## Select only those cells that at least one neighbor is defoliated
   potential = potential[potential$neigh.curr.def>0 & potential$x>0,]
@@ -30,7 +32,7 @@ spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w
     }
     if(preoutbreak>0 | outbreak>10){  
       #nnew = pmin(nrow(potential), sum(na.omit(land$curr.intens.def)>0)*runif(1, 0.75, 1)) #valors originals
-      # nnew = pmin(nrow(potential), sum(na.omit(land$curr.intens.def)>0)*runif(1, 1, 1.5))
+     # nnew = pmin(nrow(potential), sum(na.omit(land$curr.intens.def)>0)*runif(1, 1, 1.5))
       num.new = nrow(potential) * (1-runif(1, 0, reduc.nnew.preoutbreak))
     }
     sbw.new.sprd = sample(potential$cell.id, round(num.new), replace=F, prob=potential$x)

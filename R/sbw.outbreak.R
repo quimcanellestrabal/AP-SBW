@@ -23,12 +23,12 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   if(preoutbreak>0){
     cat("pre-epidemic phase ", "\n")
 
-    #Potential són les cells en què hi pot haver sbw. Tota la funció s'aplica a "potential" i no a "land"
+    ## Potential are the cells són les cells en què hi pot haver sbw. Tota la funció s'aplica a "potential" i no a "land"
     potential = filter(land, ny.def0>=5, tssbw>=30, spp %in% c("SAB", "EPN"), temp>0.5, temp<2.8)
     
-    # First epicentres
+    # First epicenters
     epicenter = sample(potential$cell.id, size=rdunif(1,4,preoutbreak), replace=F,
-                          prob=potential$ny.def0*(1200-potential$elev)/100)
+                          prob=potential$ny.def0*(1200-potential$elev)/100)  # elevation threshold from Bouchard et al. 20xx
     sbw.new.sprd = epicenter
     
     ## Find between 20 to 40 neighs for teach epicenter and add to sbw.new.sprd.
@@ -72,7 +72,7 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     ## Only if some new cells are defoliated, assign level of defoliation
     if(length(sbw.new.sprd)>0){
       ## Select sbw.new.sprd only on potential cells
-      potential = filter(land, spp %in% c("SAB", "EPN"))
+      # potential = filter(land, spp %in% c("SAB", "EPN"))
       sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% potential$cell.id]
       
       ## Level of defoliation of the cells recently integrated in the outbreak (the sbw.new.spread cells)

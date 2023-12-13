@@ -63,6 +63,7 @@ default.params = function(){
   radius.outbreak.range = 5, # radius for the spreading in the outbreak phase: range (in number of cells)
   
   ## Number of new spreading to cells 
+  ## Proportion of cells that are reduced to spread to
   reduc.nnew.preoutbreak = 0, # number between 0 and 1, to indicate the reduction in number of cells that sbw does not actually spread
   reduc.nnew.outbreak = 0,
   
