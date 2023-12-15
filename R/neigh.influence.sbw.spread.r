@@ -9,15 +9,42 @@ neigh.influence.sbw.spread = function(land, nc=804, side=2, radius=12){
   # z = c(y, ncol(MASK)+y, -(ncol(MASK)+y), 2*ncol(MASK)+y, -(2*ncol(MASK)+y)); z[z!=0]
   
   ## Neighbor position and distance to the focal cell in km
-  x = c(-radius:radius)
-  z = x; z
-  w = abs(z)*side; w
-  for(i in 1:radius){
-    z = c(z, i*nc+x, -(i*nc+x)) 
-    w = c(w, sqrt((abs(x)*side)^2+(i*side)^2), sqrt((abs(x)*side)^2+(i*side)^2) )
-  }
-  z = z[z!=0]
-  w = w[w!=0]
+  # x = c(-radius:radius)
+  # z = x; z
+  # w = abs(z)*side; w
+  # for(i in 1:radius){
+  #   z = c(z, i*nc+x, -(i*nc+x)) 
+  #   w = c(w, sqrt((abs(x)*side)^2+(i*side)^2), sqrt((abs(x)*side)^2+(i*side)^2) )
+  # }
+  # z = z[z!=0]
+  # w = w[w!=0]
+  
+  x <- c(radius:-radius)
+  G <- expand.grid(x,x)
+  names(G) <- c("x","y")
+  
+  # Cell id
+  G$z <- nc*G$y + G$x #c(1:length(x)^2)
+  
+  # Distance from focal cell
+  G$w <- sqrt((side*G$x)^2 + (side*G$y)^2)
+  
+  # Angles
+  # angles in the neighborhood are assumed to correspond to E=0, N=90, W=180, and S=270
+  # atan2(y,x) is a type of atan that returns 0 even if x is 0 (no NaN value)
+  # for cells in the 1st and 2nd quadrants it returns angles between 0 and pi, 
+  # whereas for cells in the 3rd and 4th quadrants it returns angles between 0 and -pi
+  # To have angles between 0 and 360 you need to
+  # 1) convert radians to degrees: multiply by (180/pi)
+  # 2) Add 360 (2*pi) to angles for cells in the 3rd and 4th: 
+  # i.e. only for cells with negative value of y: the term (1/2)*(1-sign(G$y)) ensures that (when y>0, this term is 0, otherwise it is 1)
+  # and only for cells with strictly negative value of y (i.e. not y=0): the term abs(sign(G$y)) ensures that (when y=0, this term is 0)
+  
+  G$teta <- atan2(G$y, G$x) + 2*pi*abs(sign(G$y))*(1/2)*(1-sign(G$y))
+  G$teta <- (180/pi)*G$teta
+  
+  # Remove focal cell (z = 0)
+  G <- filter(G, z!=0)
   
   ## Look at current level of the defoliation in the neighborhood of the cells not 
   ## currently defoliated and that last mortality by outbreak is at least 30 years.
@@ -26,20 +53,20 @@ neigh.influence.sbw.spread = function(land, nc=804, side=2, radius=12){
   upper = round(nrow(potential)/nslice)
   ## First slice
   potential.slice = potential[1:upper,]
-  neigh.curr.def = .compute.neigh.curr.def(land, potential.slice, z, w)
-  neigh.host.pref = .compute.neigh.host.pref(land, potential.slice, z, w)
+  neigh.curr.def = .compute.neigh.curr.def(land, potential.slice, G$z, G$w)
+  neigh.host.pref = .compute.neigh.host.pref(land, potential.slice, G$z,G$w)
   ## Second to n-1 slice
   for(i in 1:(nslice-1)){
     # cat(i, "\n")
     potential.slice = potential[(i*upper+1):((i+1)*upper),]
-    neigh.curr.def = rbind(neigh.curr.def, .compute.neigh.curr.def(land, potential.slice, z, w))
-    neigh.host.pref = rbind(neigh.host.pref, .compute.neigh.host.pref(land, potential.slice, z, w))
+    neigh.curr.def = rbind(neigh.curr.def, .compute.neigh.curr.def(land, potential.slice, G$z, G$w))
+    neigh.host.pref = rbind(neigh.host.pref, .compute.neigh.host.pref(land, potential.slice, G$z, G$w))
   }
   ## Last slice
   # cat("last")
   potential.slice = potential[((nslice-1)*upper+1):nrow(potential),]
-  neigh.curr.def = rbind(neigh.curr.def, .compute.neigh.curr.def(land, potential.slice, z, w))
-  neigh.host.pref = rbind(neigh.host.pref, .compute.neigh.host.pref(land, potential.slice, z, w))
+  neigh.curr.def = rbind(neigh.curr.def, .compute.neigh.curr.def(land, potential.slice, G$z, G$w))
+  neigh.host.pref = rbind(neigh.host.pref, .compute.neigh.host.pref(land, potential.slice, G$z, G$w))
   
   ## Aggregate all the info
   dta = data.frame(neigh.curr.def, neigh.host.pref$x)
