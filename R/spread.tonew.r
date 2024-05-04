@@ -10,17 +10,12 @@ spread.tonew = function(land, nc, side, radius, outbreak, preoutbreak, w.wind, w
   ##      (and perhaps wind direction in future versions)
   ## The question is, how many cells do I have to select from the pool of potential cells?
   ## It should be a number of cells proportional to the number of cells defoliated in the previous year¿?
-
-  ## Compute neighborhood current defoliation and neighborhood host preference
-  potential = neigh.influence.sbw.spread(land, nc, side, radius)
+browser()
   
-  ## The probability of sbw spread into a cell is proportional to neigh.curr.def, neigh.host.pref and 
-  ## dominant wind directions
-  ## Rescale the variables to the range [0,1] before applying any weight
-  ## 0 should be replaced by the wind factor that will depend on the angle between the target and source cells
-  ## (and of course, the main wind default direction)
-  potential$x = w.wind * 0 + w.host * rescale(potential$neigh.host.pref, to=c(0,1)) +
-    (1-pmin(w.wind+w.host,1)) * rescale(potential$neigh.curr.def, to=c(0,1))
+  ## Compute SBW spreading potential according to A. species in the source cell,
+  ## B. distance between the source and the target cells, and C. position of the target cells
+  ## with respect to the main wind direction
+  potential.spreading = sbw.spread.from.source(land, nc, radius)
   
   ## Select only those cells that at least one neighbor is defoliated
   potential = potential[potential$neigh.curr.def>0 & potential$x>0,]
