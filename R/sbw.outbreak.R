@@ -19,16 +19,24 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   }
   
   ## 1. Defliation in the different phases of the SBW outbreak
+  ## 08/04/24: In the pre-epidemic phase, the epicenters should be only SAB or EPN. 
+  ## However, cells in the bubble around an epicenter could be any deciduous. 
+  ## The intensity should be, of course, less in these non-host cells.
   cat("   Defoliation in the ")
   if(preoutbreak>0){
     cat("pre-epidemic phase ", "\n")
 
-    ## Potential are the cells són les cells en què hi pot haver sbw. Tota la funció s'aplica a "potential" i no a "land"
-    potential = filter(land, ny.def0>=5, tssbw>=30, spp %in% c("SAB", "EPN"), temp>0.5, temp<2.8)
+    ## "potential_source" are the cells where sbw can start.
+    ## All the function applies to "potential_source" cells instead of "land" cells.
+    ## That means, that sbw outbreak only can start in SAB and EPN location with optimal climatic conditions for sbw
+    ## (0.5<temp<2.8), with time_since_last_outbread >= 30, and in cells that are not currently defoliated
+    potential_source = filter(land, ny.def0>=5, tssbw>=30, spp %in% c("SAB", "EPN"), temp>0.5, temp<2.8)
+
+    ## First epicenters
+    epicenter = sample(potential_source$cell.id, size=rdunif(1,4,preoutbreak), replace=F,
+                          prob=potential_source$ny.def0*(1200-potential_source$elev)/100)  # elevation threshold from Bouchard et al. 20xx
     
-    # First epicenters
-    epicenter = sample(potential$cell.id, size=rdunif(1,4,preoutbreak), replace=F,
-                          prob=potential$ny.def0*(1200-potential$elev)/100)  # elevation threshold from Bouchard et al. 20xx
+    ## ID (or index or indicator ;-)) of the focus cells of the epicenters
     sbw.new.sprd = epicenter
     
     ## Find between 20 to 40 neighs for teach epicenter and add to sbw.new.sprd.
@@ -51,12 +59,24 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
       # sbw.new.sprd = unique(sbw.new.sprd)
     
     # Select sbw.new.sprd only on potential cells
-    potential = filter(land, spp %in% c("SAB", "EPN"))
-    sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% potential$cell.id]
+    # conifers = filter(land, spp %in% c("SAB", "EPN"))
+    # sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% conifers$cell.id]
+ 
+    ## Ask Mathieu:
+    sbw.bubble.sprd.host = land$cell.id[land$cell.id %in% sbw.new.sprd & land$ny.def0>=5 & land$tssbw>=30 &
+                                    land$spp %in% c("SAB", "EPN") & land$temp>0.5 & land$temp<2.8]
+    sbw.bubble.sprd.nonhost = land$cell.id[land$cell.id %in% sbw.new.sprd & land$ny.def0>=5 & land$tssbw>=30 &
+                                     !(land$spp %in% c("SAB", "EPN", "NonFor")) & land$temp>0.5 & land$temp<2.8]
     
     # and finally assign intensity to all of them (rewrite intensity just assigned to epicenter cores)
-    land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
-      sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1))
+    # before it was prob=c(0.2,0.4,0.3,0.1) for intensities from 0 to 3, where 0 means non actual defoliation
+    # and this prob applied only to host cells
+    land$curr.intens.def[land$cell.id %in% sbw.bubble.sprd.host] = 
+      sample(0:3, size=length(sbw.bubble.sprd.host), replace=T, prob=c(0.2,0.4,0.3,0.1))
+    land$curr.intens.def[land$cell.id %in% sbw.bubble.sprd.nonhost] = 
+      sample(0:1, size=length(sbw.bubble.sprd.nonhost), replace=T, prob=c(0.2,0.8))
+    # Number of cells by intensity per tree species (to be checked a bit) 08/04/2024
+    # table(land$curr.intens.def[land$cell.id%in%sbw.new.sprd], land$spp[land$cell.id%in%sbw.new.sprd])
   }
 
   if(outbreak>0){
@@ -65,15 +85,16 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     ## The function 'spread.tonew' returns cell.ids
     ## The radius has to be variable to allow spreading further away or limit outbreak
     radius = rdunif(1, params$radius.outbreak.mid-params$radius.outbreak.range, params$radius.outbreak.mid+params$radius.outbreak.range) 
+
     sbw.new.sprd = spread.tonew(land, nc=ncol(mask), side=cell.size.km, radius=radius, outbreak, preoutbreak,
                                 params$w.wind, params$w.host, params$reduc.nnew.outbreak, params$reduc.nnew.preoutbreak)
     sbw.new.sprd = unique(sbw.new.sprd)
     
     ## Only if some new cells are defoliated, assign level of defoliation
     if(length(sbw.new.sprd)>0){
-      ## Select sbw.new.sprd only on potential cells
-      # potential = filter(land, spp %in% c("SAB", "EPN"))
-      sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% potential$cell.id]
+      ## Select sbw.new.sprd only on conifer cells
+      # conifers = filter(land, spp %in% c("SAB", "EPN"))
+      # sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% conifers$cell.id]
       
       ## Level of defoliation of the cells recently integrated in the outbreak (the sbw.new.spread cells)
       ## It can be 0 (no-defoliation), 1, 2 or 3!
