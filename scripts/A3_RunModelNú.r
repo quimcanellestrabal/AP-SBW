@@ -5,14 +5,14 @@ devtools::load_all()
 
 ## Change some default parameters
 params = default.params()
-params$preoutbreak = 4   # so it will start with the preoutbreak phase
+params$preoutbreak = 2   # so it will start with the preoutbreak phase
 # params$preoutbreak = 12   # so it will start with the outbreak phase
 params$w.host = 1
-params$stop.end.phase = T
+params$stop.end.phase = F
 
 ## Run 
 r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, is.harvloc=F, is.harvprem=F, custom.params=params, rcp='rcp45', 
-           nrun=2, time.step=1, time.horizon=2, save.land=F, time.save=5, out.path="outputs/test") 
+           nrun=1, time.step=1, time.horizon=20, save.land=F, time.save=5, out.path="outputs/test") 
   
 
 ## Run the SBW model from scratch --------------------------------------------------------------------------
