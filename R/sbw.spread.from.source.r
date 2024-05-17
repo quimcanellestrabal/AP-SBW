@@ -6,7 +6,7 @@
 ##########################################################################################
 
 sbw.spread.from.source = function(land, nc, radius=12, side = 1){
-
+  
   ## Select all the cells that are currently defoliated  
   source.cells = land[land$ny.def>0,]
   
@@ -26,7 +26,7 @@ sbw.spread.from.source = function(land, nc, radius=12, side = 1){
   dist = matrix(nn.dist, nrow=nrow(source.cells), ncol=radius)
   
   ## Maximum radius for each target cell and the corresponding weighted and linear distances
-  ## We use the weight_dist
+  ## We use the weight_dist  # EF: NOT USED. REMOVE?
   r = dist[,radius]
   weight_dist = round(exp(-dist^2/(r/2)^2),3)
   linear_dist = round((r-dist)/r,3)
@@ -38,9 +38,9 @@ sbw.spread.from.source = function(land, nc, radius=12, side = 1){
   ## Copy in this data frame the cell.id of the source cells (1st column)
   neigh_nodefol[,1] = ids[,1]
   neigh_nodefol = data.frame(neigh_nodefol)
-  names(neigh_nodefol)[1] = "source"  
+  names(neigh_nodefol)[1] = "source"  ## EF: AND THE OTHER ARE THE TARGET CELLS?
   
-  ## Relation between the source cell, the target cell andthe species of the source cell
+  ## Relation between the source cell, the target cell and the species of the source cell
   source_wspp = pivot_longer(neigh_nodefol, cols=2:(radius), values_to="target") %>% select(-name) %>% 
     filter(target!=0) %>% left_join(select(land, cell.id, spp), by=c("source" = "cell.id")) %>% 
     rename(source_spp = spp)
@@ -64,11 +64,10 @@ sbw.spread.from.source = function(land, nc, radius=12, side = 1){
   
   ## Apply the weight corresponding to the distance
   source_dist$w_dist = exp(-(source_dist$dist-2000)^2/(r/2)^2)
-    
+  
   ## ---> Criteria C  
-  ## Élise wheel !  19/04/2024
-  ## Do we need to turn the wheel according to a user-defined prevailing wind?
-  ## We won't have a raster with the prevailing wind in each cell (we assume, too complex
+  ## Élise updated 14-05-2024
+  
   x <- c(radius:-radius)
   G <- expand.grid(x,x)
   names(G) <- c("x","y")
@@ -76,21 +75,32 @@ sbw.spread.from.source = function(land, nc, radius=12, side = 1){
   G$z <- nc*G$y + G$x #c(1:length(x)^2)
   # Distance from focal cell
   G$w <- sqrt((side*G$x)^2 + (side*G$y)^2)
-  G$theta <- atan2(G$y, G$x) + 2*pi*abs(sign(G$y))*(1/2)*(1-sign(G$y))
-  G$angle <- (180/pi)*G$theta
-  # shift is the wind direction. 
-  shift = 90 #From East to West
-  G$shift <- (G$angle + shift) %% 360
-  # if G$shift90 < 180 then G$w_angle = (180 - G$shift)/180
-  # else G$w_angle = (360 - G$shift)/180
-  G$w_angle <- abs(sign(G$shift-180))*((1/2)*(1-sign(G$shift-180))*((180 - G$shift)/180) + (1/2)*(1+sign(G$shift-180))*((360 - G$shift)/180))
+  # Each cell of the neighborhood is given an angle according to the convention: N=0, E=90, S=180, W=270
+  G$theta <- atan2(G$x, G$y) + 2*pi*abs(sign(G$x))*(1/2)*(1-sign(G$x)) #in rads
+  G$angle <- (180/pi)*G$theta #in degrees
+  
+  # Weight wind: 
+  # cells in the direction of the prevailing wind (wind_dir) are given higher weights
+  # Presenting wind_dir is a user-define number identical for all cells.
+  # However, it could be a raster with the prevailing wind in each cell (verification that the code still works would be needed)
+  # Weights decrease on cells away from the preferred wind direction
+  
+  wind_dir = 90 #From Est (works for different angle between 0 and 360)
+  G$wind_left <- (G$angle - wind_dir) %% 360
+  G$wind_right <- (wind_dir - G$angle) %% 360
+  G$wind <- G$wind_left*(G$wind_left<=180) + G$wind_right*(G$wind_right<180)
+  G$w_wind <- (1/180)*G$wind  # test: matrix(G$w_wind, nrow = 5, byrow = TRUE)
+  # Remove focal cell as w_wind is not correct at the center
+  G <- filter(G, z!=0)
+  
+  
   
   ## The position of each cell are in: G$z. And G$z is like position = ids[i,] - ids[i,1] (for the source cell 'i')
   source_wind = source_wspp %>% select(source, target) %>% mutate(position=target-source) %>% 
-    left_join(select(G, z, w_angle), by=c("position"="z"))
-    
+    left_join(select(G, z, w_wind), by=c("position"="z"))
+  
   ## Merge the three criteria and compute the final weight 
-  res = cbind(source_wspp, source_dist[,-1], source_wind[,"w_angle"]) %>% mutate(w=w_spp*w_dist*w_angle) %>%  
+  res = cbind(source_wspp, source_dist[,-1], source_wind[,"w_wind"]) %>% mutate(w=w_spp*w_dist*w_wind) %>%  
     group_by(target) %>% summarise(final_w=sum(w)) 
   
   ## Rescaling the final weight to [0,1]
@@ -100,7 +110,7 @@ sbw.spread.from.source = function(land, nc, radius=12, side = 1){
   ## Rescale the variables to the range [0,1] before applying any weight ??
   ## Do we want to apply a weight to each of these factors?
   ## Do we use a multiplicative or an additive formula?
-  ## weight_factor_spp*w_spp + weight_factor_distance*w_dist + weight_factor_angel*w_angle
+  ## weight_factor_spp*w_spp + weight_factor_distance*w_dist + weight_factor_angel*w_wind
   
   return(res)  
 }
