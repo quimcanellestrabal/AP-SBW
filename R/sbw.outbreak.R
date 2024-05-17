@@ -27,6 +27,9 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     potential = filter(land, ny.def0>=5, tssbw>=30, spp %in% c("SAB", "EPN"), temp>0.5, temp<2.8)
     
     # First epicentres
+    ## EF: rdunif is a random discrete dist. Chose 1 number between preoutbreak and 4.
+    ## Amongst the potential cells, select size epicenters with a proba that depends on the time since def and inversely propo to their elevation.
+    ## Why 1200?
     epicenter = sample(potential$cell.id, size=rdunif(1,4,preoutbreak), replace=F,
                           prob=potential$ny.def0*(1200-potential$elev)/100)
     sbw.new.sprd = epicenter
@@ -72,10 +75,10 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     ## Only if some new cells are defoliated, assign level of defoliation
     if(length(sbw.new.sprd)>0){
       ## Select sbw.new.sprd only on potential cells
-      potential = filter(land, spp %in% c("SAB", "EPN"))
+      #potential = filter(land, spp %in% c("SAB", "EPN")) #On ne veut pas limiter seulement aux hotes car il pourrait y avoir de la tbe dans les non-hotes
       sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% potential$cell.id]
       
-      ## Level of defoliation of the cells recently integrated in the outbreak (the sbw.new.spread cells)
+      ## Set level of defoliation of the cells recently integrated in the outbreak (the sbw.new.spread cells)
       ## It can be 0 (no-defoliation), 1, 2 or 3!
       land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
         sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1)) 
