@@ -67,9 +67,8 @@ default.params = function(){
   reduc.nnew.preoutbreak = 0, # number between 0 and 1, to indicate the reduction in number of cells that sbw does not actually spread
   reduc.nnew.outbreak = 0,
   
-  ## Weights of the factors influencing sbw spreading
-  w.wind = 0, 
-  w.host = 0,
+  ## Main wind direction of sbw spreading
+  wind_dir = 270, 
   
   ## VEGETATION DYNAMICS parameters:
   enable.succ = TRUE, # enable natural succession every 40 years (if FLASE, composition remains the same)
