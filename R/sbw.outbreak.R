@@ -10,14 +10,6 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   ## Determine cell resolution in km
   cell.size.km = (mask@extent[2] - mask@extent[1])/ncol(mask) / 10^3
   
-  ## Check that weights make sense
-  if(params$w.wind>1){
-    stop("Weight of wind factor cannot be greater than 1")
-  }
-  if(params$w.host>1){
-    stop("Weight of neighbor host factor cannot be greater than 1")
-  }
-  
   ## 1. Defliation in the different phases of the SBW outbreak
   ## 08/04/24: In the pre-epidemic phase, the epicenters should be only SAB or EPN. 
   ## However, cells in the bubble around an epicenter could be any deciduous. 
@@ -85,21 +77,19 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     ## The function 'spread.tonew' returns cell.ids
     ## The radius has to be variable to allow spreading further away or limit outbreak
     radius = rdunif(1, params$radius.outbreak.mid-params$radius.outbreak.range, params$radius.outbreak.mid+params$radius.outbreak.range) 
-
-    sbw.new.sprd = spread.tonew(land, nc=ncol(mask), side=cell.size.km, radius=radius, outbreak, preoutbreak,
-                                params$w.wind, params$w.host, params$reduc.nnew.outbreak, params$reduc.nnew.preoutbreak)
-    sbw.new.sprd = unique(sbw.new.sprd)
+    sbw.new.sprd = sbw.spread.from.source(land, nc=ncol(mask), wind_dir=params$wind_dir, radius=radius)
+    sbw.new.sprd$effective_spread = runif(nrow(sbw.new.sprd), 0 ,1) <= sbw.new.sprd$spread_potential_multi
     
     ## Only if some new cells are defoliated, assign level of defoliation
-    if(length(sbw.new.sprd)>0){
-      ## Select sbw.new.sprd only on conifer cells
+    if(nrow(sbw.new.sprd)>0){
+      ## Select sbw.new.sprd only on conifer cells (by Quim)
       # conifers = filter(land, spp %in% c("SAB", "EPN"))
       # sbw.new.sprd = sbw.new.sprd[sbw.new.sprd %in% conifers$cell.id]
       
       ## Level of defoliation of the cells recently integrated in the outbreak (the sbw.new.spread cells)
       ## It can be 0 (no-defoliation), 1, 2 or 3!
-      land$curr.intens.def[land$cell.id %in% sbw.new.sprd] = 
-        sample(0:3, size=length(sbw.new.sprd), replace=T, prob=c(0.2,0.4,0.3,0.1)) 
+      land$curr.intens.def[land$cell.id %in% sbw.new.sprd$target] = 
+        sample(1:3, size=nrow(sbw.new.sprd), replace=T, prob=c(0.4,0.3,0.1)) 
     }
   }
 
@@ -107,7 +97,7 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     cat("collapse phase ", "\n")
     ## if collapse, reduce number of new cells, only spontaneously
     potential = filter(land, ny.def0>=5, tssbw>=30, spp %in% c("SAB", "EPN"),temp>0.5, temp<2.8)
-    sbw.new.sprd = sample(potential$cell.id, size=round(rlnorm(1, 2,1.5)), replace=F,  #mn(lnorm) ~ ifelse(collapse==1, 2, 1.5)
+    sbw.new.sprd = sample(potential$cell.id, size=round(rlnorm(1, 2, 1.5)), replace=F,  #mn(lnorm) ~ ifelse(collapse==1, 2, 1.5)
                           prob=potential$ny.def0*(1200-potential$elev)/100)
     
     # # #Some spontaneous new plots
