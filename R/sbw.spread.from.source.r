@@ -5,8 +5,10 @@
 ## C. The position of the target cell with respect with the main wind direction
 ##########################################################################################
 
-sbw.spread.from.source = function(land, nc, radius=12, side = 1){
-  
+
+sbw.spread.from.source = function(land, nc, wind_dir = 90, radius=12, side = 1){  ##From Est (works for different angle between 0 and 360
+
+
   ## Select all the cells that are currently defoliated  
   source.cells = land[land$ny.def>0,]
   
@@ -84,8 +86,7 @@ sbw.spread.from.source = function(land, nc, radius=12, side = 1){
   # Presenting wind_dir is a user-define number identical for all cells.
   # However, it could be a raster with the prevailing wind in each cell (verification that the code still works would be needed)
   # Weights decrease on cells away from the preferred wind direction
-  
-  wind_dir = 90 #From Est (works for different angle between 0 and 360)
+
   G$wind_left <- (G$angle - wind_dir) %% 360
   G$wind_right <- (wind_dir - G$angle) %% 360
   G$wind <- G$wind_left*(G$wind_left<=180) + G$wind_right*(G$wind_right<180)
@@ -93,18 +94,19 @@ sbw.spread.from.source = function(land, nc, radius=12, side = 1){
   # Remove focal cell as w_wind is not correct at the center
   G <- filter(G, z!=0)
   
-  
-  
+
   ## The position of each cell are in: G$z. And G$z is like position = ids[i,] - ids[i,1] (for the source cell 'i')
   source_wind = source_wspp %>% select(source, target) %>% mutate(position=target-source) %>% 
     left_join(select(G, z, w_wind), by=c("position"="z"))
-  
+
   ## Merge the three criteria and compute the final weight 
-  res = cbind(source_wspp, source_dist[,-1], source_wind[,"w_wind"]) %>% mutate(w=w_spp*w_dist*w_wind) %>%  
-    group_by(target) %>% summarise(final_w=sum(w)) 
-  
+  res = cbind(source_wspp, source_dist[,-1], source_wind[,"w_wind"]) %>% 
+    mutate(w_add = 1/3*w_spp + 1/3*w_dist + 1/3*w_wind, w_multi=w_spp*w_dist*w_wind) %>%  
+    group_by(target) %>% summarise(final_w_add=sum(w_add), final_w_multi=sum(w_multi)) 
+
   ## Rescaling the final weight to [0,1]
-  res$spread.potential = (res$final_w-min(res$final_w))/(max(res$final_w)-min(res$final_w)) 
+  res$spread_potential_add = (res$final_w_add-min(res$final_w_add))/(max(res$final_w_add)-min(res$final_w_add)) 
+  res$spread_potential_multi = (res$final_w_multi-min(res$final_w_multi))/(max(res$final_w_multi)-min(res$final_w_multi)) 
   
   ## Questions:  
   ## Rescale the variables to the range [0,1] before applying any weight ??
