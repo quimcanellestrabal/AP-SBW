@@ -14,7 +14,7 @@ rect(0:(length(COL)-1), 0, 1:length(COL), 1, col=COL)
 
 
 # variable="ageClass"or variable="transition" or variable="new_spp" or variable="curr.intens.def"
-scn.name = "test20_scn0"; r=1; t=2021; variable="curr.intens.def"
+scn.name = "scn0"; r=1; t=2021; variable="curr.intens.def"
 
 #Function
 mapping = function(scn.name, r=1, t=2020, variable=NA, is.save=F, is.plot=F, is.shp=F){
@@ -48,7 +48,7 @@ mapping = function(scn.name, r=1, t=2020, variable=NA, is.save=F, is.plot=F, is.
   
   if(is.save){
     
-    png(paste0(getwd(), "/plots/maps/scn",iscn,"/",variable,"_", scn.name,"_run",r,"_t",t, ".png"))
+    png(paste0(getwd(), "/plots/maps/",scn.name,"/",variable,"_", "_run",r,"_t",t, ".png"))
     par(xpd = F)
     plot(map, col=COL, main=paste(variable, t, "r=",r), legend=F)
     par(xpd = TRUE)
@@ -70,8 +70,12 @@ mapping = function(scn.name, r=1, t=2020, variable=NA, is.save=F, is.plot=F, is.
   
   
 }
+mapping("scn0", r=1, t=2021, variable = "curr.intens.def", is.save=T,is.plot = T)
 #exemple::mapping("test4",r=1,t=5, variable="transition",is.save=F, is.plot=T)
 
+for (time in seq(2021, 2100,5)){
+  mapping("scn0", r=2, t=time, variable = "curr.intens.def", is.save=T,is.plot = T)
+}
 
 ##LOOP mapping()
 c.variable = c("ageClass","transition","new_spp","curr.intens.def") 

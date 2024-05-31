@@ -11,7 +11,7 @@ params$stop.end.phase = F
 
 ## Run 
 r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, is.harvloc=F, is.harvprem=F, custom.params=params, rcp='rcp45', 
-           nrun=1, time.step=1, time.horizon=20, save.land=F, time.save=5, out.path="outputs/test") 
+           nrun=1, time.step=1, time.horizon=10, save.land=T, time.save=5, out.path="outputs/test2") 
   
 
 ## Run the SBW model from scratch --------------------------------------------------------------------------

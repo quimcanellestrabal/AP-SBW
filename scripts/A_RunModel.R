@@ -22,8 +22,14 @@ out.path="outputs/test1_s0"
 ############################################ RUN ap-sbw() ##################################################
 
 ## 1 basic run
-r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, is.harvloc=F, is.harvprem=F, custom.params=NA, rcp='rcp45', 
-           nrun=1, time.step=1, time.horizon=80, save.land=F, time.save=5, out.path=NA )
+
+params = default.params()
+params$preoutbreak = 2   # so it will start with the preoutbreak phase
+# params$preoutbreak = 12   # so it will start with the outbreak phase
+params$stop.end.phase = F
+
+r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, is.harvloc=F, is.harvprem=F, custom.params=params, rcp='rcp45', 
+           nrun=3, time.step=1, time.horizon=80, save.land=T, time.save=5, out.path="outputs/scn0" )
 
 
 ## Save outputs
@@ -39,7 +45,7 @@ r = ap.sbw(scn="scn1", is.sbw=F, is.harvesting=T, is.harvloc=F, is.harvprem=F, c
            nrun=3, time.step=1, time.horizon=80, save.land=F, time.save=5, out.path=NA )
   
   
-## Change values of an innput table, eg. soil.suitability of SAB
+## Change values of an input table, eg. soil.suitability of SAB
 #*** incloure custom tables a la funció principal
 
 data(default.tables)

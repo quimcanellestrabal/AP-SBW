@@ -1,0 +1,22 @@
+1. The new parameter stop.end.phase when true, stops running the model when a phase of sbw (any of them) is over
+2. The four parameters preoutbreak, outbreak, collapse, calm, account for the the number of years lasting for each of these phases. Only one can be initialized > 0. the duration of the current phase will be the sum of this initial number and the parameter current.duration that by now is set at 0.
+3. I've added the possibility to start from scratch. That means, that any cell is currently defoliated. This is done by setting to 0 all the variables related to sbw defoliation in the initial landscape and add it as an argument of the ap.sbw() function. You can see an example of this on the A3_RunModelNú.r script
+4. I've cleaned the section outbreak from sbw.outbreak() and
+4.1. The radius of the spreading is now defined as 
+radius = rdunif(1, params$radius.outbreak.mid-params$radius.outbreak.range, params$radius.outbreak.mid+params$radius.outbreak.range)
+we may discuss this.  
+4.2. There are two new parameters to control the wind and host factor to influence the spreading: w.wind and w.host. the formulation to calculate the probability to spread to is now computed in spread.tonew() as
+  potential$x = w.wind * 0 + w.host * rescale(potential$neigh.host.pref, to=c(0,1)) +
+    (1-pmax(w.wind+w.host,1)) * rescale(potential$neigh.curr.def, to=c(0,1))
+4.3. the parameters reduc.nnew.outbreak and reduc.nnew.preoutbreak control the number of new cells to spread to by reducing the total potential by this parameters in spread.tonew() as
+    num.new = nrow(potential) * (1-runif(1, 0, reduc.nnew.outbreak))
+5. remove the spread.tonew() function from the pre-outbreak phase. we may need to recover it
+6. I've added the functionality that for each new epicenter a number of between kmin and kmax neighbor cells are added to this "bubble" in the preoutbreak phase (parameters kmin.bubble and kmax.bubble)
+7. GENERAL CODE CLEANING ;-)
+
+What lasts:
+a. when to constraint the spreading to EPN and SAB if this needs to be happen. I haven't changed the code with respect to. But if we actually constrain the spreading to spruce and fir then I'll propose other ways (places in the code) to do so in relation to the current version.
+b. check and probably re-code the function neigh.influence.host()
+c. compute the wind directionality and add to the neigh.influence.host() function
+
+Everything has been uploaded to https://github.com/quimcanellestrabal/AP-SBW/tree/develop_nu

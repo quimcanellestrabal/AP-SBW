@@ -10,7 +10,7 @@
 #' @param rcp Climate projection, either \code{NA} (default), 'rcp45' or 'rcp85' 
 #' @param nrun Number of replicates to run the model
 #' @param time.step Number of years of each time step
-#' @param time.horizon Number of years of the model simulation, it has to be a multiple \code{time.step}
+#' @param time.horizon Number of years of the model simulation, it has to be a multiple of \code{time.step}
 #' @param save.land A flag to save as a RDS file the \code{landscape} data frame at the time step indicated in \code{out.seq}
 #' @param time.save Numeric vector with the time steps the \code{landscape} is saved
 #' @param out.path String with the directory path to save the \code{landscape} data frame at each time step indicated in \code{out.seq}
@@ -48,9 +48,8 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   source("R/harvest.area.r")
   source("R/intens.def.curr.r")
   source("R/intensity.defoliation.r")
-  source("R/neigh.influence.sbw.spread.r")
   source("R/sbw.outbreak.r")
-  source("R/spread.tonew.r")
+  source("R/sbw.spread.from.source.r")
   source("R/suitability.r")
   ## Function to select items not in a vector
   `%notin%` = Negate(`%in%`)
