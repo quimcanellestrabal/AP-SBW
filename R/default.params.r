@@ -37,7 +37,7 @@ default.params = function(){
   time.step = 1,
   time.horizon = 80, 
   save.land.df = FALSE, 
-  time.save = 5,
+  freq.save = 5,
   
   ## Stop running the model at the end of any sbw phase
   stop.end.phase = FALSE,
@@ -59,10 +59,8 @@ default.params = function(){
   kmax.bubble = 2000,
   
   ## Spreading radius 
-  # radius.preoutbreak.mid = 10, # radius for the spreading in the preoutbreak phase: mid point (in number of cells)
-  # radius.preoutbreak.range = 5, # radius for the spreading in the preoutbreak phase: range (in number of cells)
-  radius.outbreak.mid = 10, # radius for the spreading in the outbreak phase: mid point (in number of cells)
-  radius.outbreak.range = 5, # radius for the spreading in the outbreak phase: range (in number of cells)
+  radius.outbreak.mid = 10, # radius for the spreading in the outbreak phase: mid point (in km)
+  radius.outbreak.range = 5, # radius for the spreading in the outbreak phase: range (in km)
   
   ## Number of new spreading to cells 
   ## Proportion of cells that are reduced to spread to
@@ -80,7 +78,12 @@ default.params = function(){
   suboptimal = 0.5,  # tolerance for sub optimal conditions
   
   ## HARVESTING
-  is.harvprem = FALSE  # A flag to indicate if premature harvesting is allowed
+  is.harvprem = FALSE,  # A flag to indicate if premature harvesting is allowed
+  harv.rate = 0,  #	Harvest rate ([0,1])
+  ap.rate	= 0,   # Artificial planting rate ([0,1])
+  epn.rege.rate	= 0, #Black spruce regeneration rate ([0,1])
+  pet.rege.rate	= 0 #Trembling aspen regeneration rate ([0,1])
+  
 
   ))
   

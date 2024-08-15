@@ -9,10 +9,10 @@ devtools::load_all()
 params = default.params()
 params$preoutbreak = 2   # so it will start with the preoutbreak phase
 # params$preoutbreak = 12   # so it will start with the outbreak phase
-params$stop.end.phase = F
+params$radius.outbreak.mid = 3
+params$radius.outbreak.range = 1
 params$time.horizon = 4
-## Run it. 
-## WARNING: If is.harvesting=T, the name of the scenario should match any of those in "data/default.tables2.rda"
+## Run it:
 r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, custom.params=params, 
            rcp='rcp45', nrun=1, out.path="outputs/test") 
   
@@ -23,7 +23,7 @@ r = ap.sbw(scn="scn0", is.sbw=T, is.harvesting=T, custom.params=params,
 scenario.params = xlsx::read.xlsx("scripts/params_scenarios.xlsx", sheetName="scenario_params")
 scenarios = c("scn01", "scn02"); scn = "scn01"
 for(scn in scenarios){
-  custom.params = default.params()
+  custom.params = default.params()  # to have a named list of the parameters 
   for(i in 1:length(custom.params))
     custom.params[[i]] = scenario.params[scenario.params$scenario==scn, names(custom.params)[i]]
   # transform class of the parameters
@@ -33,7 +33,7 @@ for(scn in scenarios){
   custom.params$is.harvprem = ifelse(custom.params$is.harvprem %in% c("FALSE", "F"), F, T)
   # run the model
   out.path=paste0("outputs/", scn)
-  res = ap.sbw(scn=scn, is.sbw=T, is.harvesting=F, custom.params, rcp='rcp45', nrun=1, out.path)
+  res = ap.sbw(scn=scn, is.sbw=T, is.harvesting=T, custom.params=custom.params, rcp='rcp45', nrun=1, out.path)
   if(!file.exists(out.path))
     dir.create(file.path(out.path), showWarnings = T) 
   saveRDS(res, paste0(out.path, "/", "ap_sbw.rds"))
