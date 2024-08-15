@@ -5,31 +5,57 @@
 ## C. The position of the target cell with respect with the main wind direction
 ##########################################################################################
 
-sbw.spread.from.source = function(land, nc, wind_dir = 90, radius=12, side = 1){  ##From Est (works for different angle between 0 and 360
+sbw.spread.from.source = function(land, nc, wind_dir, radius, cell.size, side = 1){  ##From Est (works for different angle between 0 and 360
 
   ## Select all the cells that are currently defoliated  
   source.cells = land[land$ny.def>0,]
   
-  ## Find the neighbours of all source cells in a radius
-  neighs = nn2(land[,c("x", "y")], land[land$cell.id %in% source.cells$cell.id, c("x", "y")],
-               k=radius, searchtype='priority')  
-  nn.indx = neighs[[1]] # position of cells within the dataframe 'land'
-  nn.dist = neighs[[2]] # distance between source and target of cells
+  ## Find the neighbors of all source cells in a radius
+  # 'radius' parameter in nn2 should be in meters, as the coordinates
+  # the maximum number of neighbors to search for (k) is number of cells of a square of size 2* radius,
+  # so this maximum number of cells is (2*num_of_cells_in_the_radius)^2
+  k=((radius*1000/cell.size)*2)^2
+  neighs_r = nn2(land[,c("x", "y")], land[land$cell.id %in% source.cells$cell.id, c("x", "y")],
+                 k=k, radius=radius*1000, searchtype='radius')  
+  nn.indx = neighs_r[[1]] # position of cells within the dataframe 'land'
+  nn.dist = neighs_r[[2]]
+  nn.dist[nn.indx==0] = NA
+  nn.indx[nn.indx==0] = NA
   
   ## We need to find out 
   ## 1. the species of the source cell associated to each neighbor (spps)
   ## 2. if the neighbors are defoliated or not (defol)
   ## 3. the distance between the target and the source cells (dist)
-  ids = matrix(land$cell.id[nn.indx], nrow=nrow(source.cells), ncol=radius)  # the real id of each cell (it is different from its position within the 'land' dataframe)
-  spps = matrix(land$spp[nn.indx], nrow=nrow(source.cells), ncol=radius)
-  defol = matrix(land$ny.def[nn.indx], nrow=nrow(source.cells), ncol=radius)
-  dist = matrix(nn.dist, nrow=nrow(source.cells), ncol=radius)
+  ## As the nn.indx may contain NAs we should do
+    # # option A)
+    # ids_vector = NULL
+    # for(i in 1:nrow(nn.indx)){
+    #   if(i==1){
+    #     ids_vector = land$cell.id[nn.indx[i,]]
+    #   } else{
+    #     ids_vector = rbind(ids_vector, land$cell.id[nn.indx[i,]])
+    #   }
+    # }
+    # # option B)
+    # ids_values = land$cell.id[nn.indx]
+    # ids_matrix = nn.indx
+    # ids_matrix[!is.na(ids_matrix)] = ids_values[!is.na(ids_values)]
+
+  # Choose option B for all the data frames
+  ids.values = land$cell.id[nn.indx] # the real id of each cell (it is different from its position within the 'land' dataframe)
+  spps.values = land$spp[nn.indx]
+  defol.values = land$ny.def[nn.indx]
+  ids = spps = defol = nn.indx  
+  ids[!is.na(nn.indx)] = ids.values[!is.na(ids.values)]
+  spps[!is.na(nn.indx)] = spps.values[!is.na(spps.values)]
+  defol[!is.na(nn.indx)] = defol.values[!is.na(defol.values)]
+  dist = matrix(nn.dist, nrow=nrow(source.cells))
   
   ## Maximum radius for each target cell and the corresponding weighted and linear distances
   ## We use the weight_dist  # EF: NOT USED. REMOVE?
-  r = dist[,radius]
-  weight_dist = round(exp(-dist^2/(r/2)^2),3)
-  linear_dist = round((r-dist)/r,3)
+    # r = dist[,radius]
+    # weight_dist = round(exp(-dist^2/(r/2)^2),3)
+    # linear_dist = round((r-dist)/r,3)
   
   ## ---> Criteria A
   ## Matrix with the cell.id of the neighbor cells that are not defoliated yet
@@ -41,9 +67,9 @@ sbw.spread.from.source = function(land, nc, wind_dir = 90, radius=12, side = 1){
   names(neigh_nodefol)[1] = "source"  ## EF: AND THE OTHER ARE THE TARGET CELLS?
   
   ## Relation between the source cell, the target cell and the species of the source cell
-  source_wspp = pivot_longer(neigh_nodefol, cols=2:(radius), values_to="target") %>% select(-name) %>% 
+  source_wspp = pivot_longer(neigh_nodefol, cols=2:k, values_to="target") %>% select(-name) %>% 
     filter(target!=0) %>% left_join(select(land, cell.id, spp), by=c("source" = "cell.id")) %>% 
-    rename(source_spp = spp)
+    rename(source_spp = spp) 
   
   ## Apply the weight corresponding to these species
   source_wspp$w_spp = ifelse(source_wspp$source_spp %in% c("EPN", "SAB"), 0.7, 0.3)
@@ -59,16 +85,14 @@ sbw.spread.from.source = function(land, nc, wind_dir = 90, radius=12, side = 1){
   
   ## Relation between the source cell and the distance with the target cells (not explicitly indicated in this data frame,
   ## but we keep the order of them)
-  source_dist =  pivot_longer(neigh_dist, cols=2:(radius), values_to="dist") %>% select(-name)  %>% filter(dist!=0)
+  source_dist =  pivot_longer(neigh_dist, cols=2:k, values_to="dist") %>% select(-name) %>% filter(dist!=0)
   r = max(source_dist$dist)-2000
   
   ## Apply the weight corresponding to the distance
   source_dist$w_dist = exp(-(source_dist$dist-2000)^2/(r/2)^2)
     
   ## ---> Criteria C  
-  ## Élise updated 14-05-2024
-  
-  x <- c(radius:-radius)
+  x <- c(k:-k)
   G <- expand.grid(x,x)
   names(G) <- c("x","y")
   # Cell id
@@ -102,6 +126,8 @@ sbw.spread.from.source = function(land, nc, wind_dir = 90, radius=12, side = 1){
     group_by(target) %>% summarise(final_w_add=sum(w_add), final_w_multi=sum(w_multi)) 
   
   ## Rescaling the final weight to [0,1]
+  ## Mathieu 31/05/2024 > Do not rescaling, this is an artifact. Keep the "ecological" probability
+  ## and fix a upper threshold above everything is defoliated
   res$spread_potential_add = (res$final_w_add-min(res$final_w_add))/(max(res$final_w_add)-min(res$final_w_add)) 
   res$spread_potential_multi = (res$final_w_multi-min(res$final_w_multi))/(max(res$final_w_multi)-min(res$final_w_multi)) 
   
