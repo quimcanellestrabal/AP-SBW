@@ -32,13 +32,15 @@
 default.params = function(){
   return(list(
   
-  ## Time lenght in years of a model simulation
-  ## 80 time steps of 1 years, it covers the period 2020-2100.
+  ## Time length in years of a model simulation (e.g. 80 time steps of 1 year covers the period 2020-2100)
   year.ini = 2020,
   time.step = 1,
+  time.horizon = 80, 
+  save.land.df = FALSE, 
+  time.save = 5,
   
   ## Stop running the model at the end of any sbw phase
-  stop.end.phase = F,
+  stop.end.phase = FALSE,
   
   ## SPRUCE BUDWORM parameters:  
   duration.last.outbreak = 9,
@@ -75,8 +77,11 @@ default.params = function(){
   enfeuil = 0.0,
   age.seed = 40,     # below this stand age, seed production is very low, and regeneration failures are more likely
   p.failure = 0,     # probability of regeneration failure in young (< 50 years) burned stands
-  suboptimal = 0.5  # tolerance for sub optimal conditions
+  suboptimal = 0.5,  # tolerance for sub optimal conditions
   
+  ## HARVESTING
+  is.harvprem = FALSE  # A flag to indicate if premature harvesting is allowed
+
   ))
   
 }

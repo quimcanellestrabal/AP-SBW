@@ -22,44 +22,44 @@
 #' source("R/default.params.r");params = default.params()
 #' load("data/landscape.rda")
 #' load("data/default.tables.rda")
-#' harvest = harvest.area(landscape, params, default.tables, scn="scn1", is.harvloc=F, is.harvprem=F) 
+#' harvest = harvest.area(landscape, params, default.tables, scn="scn1", is.harvprem) 
 #' 
 #' land=landscape; params=default.params(); tbls=default.tables; scn="scn1"
 
-harvest.area<-function(land, params, tbls, scn, is.harvloc,is.harvprem){
+harvest.area = function(land, params, tbls, scn="scn0", is.harvprem=F){
   
   #1. Management units
-  land2 <- land[!is.na(land$mgmt.unit) & !land$spp=="NonFor" & !land$mgmt.unit=="AGNA",] #AGNA out of management. This implies harvesting and later Artificial planting.
-  units <- as.character(sort(unique(land2$mgmt.unit[!is.na(land2$mgmt.unit)])))
-  units <- units[-which(units == c("AGNA"))]
-  
+  land2 = land[!is.na(land$mgmt.unit) & !land$spp=="NonFor" & !land$mgmt.unit=="AGNA",] #AGNA out of management. This implies harvesting and later Artificial planting.
+  units = as.character(sort(unique(land2$mgmt.unit[!is.na(land2$mgmt.unit)])))
+  units = units[-which(units == c("AGNA"))]
+
   #2. Harvestable cells
-  if (is.harvprem)
-  {land.inc <- filter(land2, !is.na(mgmt.unit) & is.na(exclus) & age>(age.matu-20) & spp!=("ERS"))}
-  else
-  {land.inc <- filter(land2, !is.na(mgmt.unit) & is.na(exclus) & age>age.matu & spp!=("ERS"))} #*is ERS the only species excluded?
+  if(is.harvprem){
+    land.inc = filter(land2, !is.na(mgmt.unit) & is.na(exclus) & age>(age.matu-20) & spp!=("ERS"))
+  } else{
+    land.inc = filter(land2, !is.na(mgmt.unit) & is.na(exclus) & age>age.matu & spp!=("ERS"))
+  } #*is ERS the only species excluded?
   
   
   #3. Select number of cells to harvest
   ##Forest
-  land.num <- filter(land2, !is.na(mgmt.unit) & is.na(exclus) & spp!=("ERS"))
-  
+  land.num = filter(land2, !is.na(mgmt.unit) & is.na(exclus) & spp!=("ERS"))
+
   ## Number of harvest cells according to the scenario
-  hr <- as.numeric(tbls$scn.df[tbls$scn.df$ScnName==scn,2])
-  n_hr <- round(hr*nrow(land.num))
-  
+  hr = as.numeric(tbls$scn.df[tbls$scn.df$ScnName==scn, 2])
+  n_hr = round(hr*nrow(land.num))
   
   #4. Select cells to harvest
   ## Select the %(=hr) of cells for each unit mgmt
   if (nrow(land.inc)>n_hr)
-  { selection <- land.inc %>% group_by(mgmt.unit) %>% 
+  { selection = land.inc %>% group_by(mgmt.unit) %>% 
     sample_n(size = round(n_hr * n() / nrow(land.inc)), replace = F) %>% 
     ungroup() %>% slice_sample(n = n_hr)
     
-    cc.cells <- selection$cell.id}
+    cc.cells = selection$cell.id}
   else
   {selection = data.frame(var1 = character())
-    cc.cells <- 0}
+    cc.cells = 0}
 
   
   #5. Track and return  

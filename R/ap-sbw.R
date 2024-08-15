@@ -9,20 +9,16 @@
 #' @param custom.params List with the model paramaters and default and/or user-defined values 
 #' @param rcp Climate projection, either \code{NA} (default), 'rcp45' or 'rcp85' 
 #' @param nrun Number of replicates to run the model
-#' @param time.step Number of years of each time step
-#' @param time.horizon Number of years of the model simulation, it has to be a multiple \code{time.step}
-#' @param save.land A flag to save as a RDS file the \code{landscape} data frame at the time step indicated in \code{out.seq}
-#' @param time.save Numeric vector with the time steps the \code{landscape} is saved
 #' @param out.path String with the directory path to save the \code{landscape} data frame at each time step indicated in \code{out.seq}
 #'  
-#'  
-#'@example:: scn="scn1"; is.sbw=T; is.harvesting=T; is.harvloc=F; is.harvprem=F; nrun=3; time.step=1; time.horizon=80; save.land=T; time.save=1; out.seq=NA; out.path=paste0("outputs/test4"); custom.params=NA; rcp='rcp45'
-#'@example:: kk=ap.sbw(scn="scn1", is.sbw=T, is.harvesting=T, is.harvloc=T; custom.params=NA, rcp='rcp45', nrun=3, time.step=1, time.horizon=20, save.land=F, time.save=NA, out.path=NA )
+#' @example 
+#' params = default.params()
+#' res = ap.sbw(scn="test", is.sbw=T, is.harvesting=T, is.harvloc=T; custom.params=params, 
+#' rcp='rcp45', nrun=3, out.path=NA)
 
 
-ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE, is.harvprem = FALSE,
-                   custom.params = NA, rcp = NA, nrun = 1, time.step = 1, time.horizon = 80, 
-                   save.land = FALSE, time.save=5, out.path = NA, landscape=NULL){
+ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA, 
+                  rcp = NA, nrun = 1, out.path = NA, landscape = NULL){
   
   
   ###########################################################################
@@ -68,24 +64,7 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE
   
   cat("A. Data preparation ...\n")
   
-  ### 1.1. TIME STEPS ###
-  ## Build the discrete time sequence according to time.step
-  time.seq = seq(1, time.horizon, time.step) 
-  
-  ## Set out.seq to save function outputs
-  if(save.land){
-      out.seq = seq(0, time.horizon, time.save)
-      out.seq = out.seq[out.seq!=0]
-      if(!all(out.seq %in% time.seq)){warning("Not all time steps in the output sequence provided are simulated.", call.=F)}
-      if(is.na(out.path)) stop("Directory path to save outputs not provided") } 
-  if(!(save.land)){
-    out.seq=0
-  }
-
-  ### 1.2. CELL RESOLUTION ###
-  km2.pixel = raster::res(mask)[1] * raster::res(mask)[2] / 10^6
-  
-  ### 1.3. PARAMETERS ###
+  ### 1.1. PARAMETERS ###
   ## Get the list of default parameters and update user-initialized parameters
   params = default.params()
   if(!any(is.na(custom.params))){
@@ -98,6 +77,23 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE
       stop("Wrong custom parameters names")
     params = custom.params
   }
+  
+  ### 1.2. TIME STEPS ###
+  ## Build the discrete time sequence according to time.step
+  time.seq = seq(1, params$time.horizon, params$time.step) 
+  
+  ## Set out.seq to save function outputs
+  if(params$save.land.df){
+      out.seq = seq(0, params$time.horizon, params$time.save)
+      out.seq = out.seq[out.seq!=0]
+      if(!all(out.seq %in% time.seq)){warning("Not all time steps in the output sequence provided are simulated.", call.=F)}
+      if(is.na(out.path)) stop("Directory path to save outputs not provided") } 
+  if(!(params$save.land.df)){
+    out.seq=0
+  }
+
+  ### 1.3. CELL RESOLUTION ###
+  km2.pixel = raster::res(mask)[1] * raster::res(mask)[2] / 10^6
   
   ### 1.4. SET CLIMATIC PROJECTIONS ###
   ## Load precipitation and temperature projections provided with the package according to the climatic scenario.
@@ -169,7 +165,7 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE
       
       ## Print replicate and time step
       cat("\n") 
-      cat(paste0("Replicate ", irun, "/", nrun,". Time step ", t, ": ", params$year.ini+t-time.step, "-", t+params$year.ini, ". Scn: ",scn,"\n"))
+      cat(paste0("Replicate ", irun, "/", nrun,". Time step ", t, ": ", params$year.ini+t-params$time.step, "-", t+params$year.ini, ". Scn: ",scn,"\n"))
       
       ### 2.1. SET LAND TRANSITION AND LAND NEWSPP 
       land$transition=NA
@@ -181,14 +177,14 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE
       ## Column 1 is cell.index, the following columns are temp (precip) in 2020-2025, 2025-2030, 2030-2035, ... etc.
       ## The last column (temp95) then corresponds to the period 2095-2100
       ## The first time step (t=5) we start with climate 2020-2025
-      if(temp.chg & t < time.horizon){
+      if(temp.chg & t < params$time.horizon){
         cat("  Update temperature projections\n")
         aux = temp.proj[,c(1,t+74)] 
         names(aux) = c("cell.id", "temp")
         aux[is.na(aux)] = mean(na.omit(aux[,c(2)])) #*To fix the 2 rows with NA causing troubles.
         land = dplyr::select(land, -temp) %>% left_join(aux, by="cell.id")
       }
-      if(prec.chg & t < time.horizon){
+      if(prec.chg & t < params$time.horizon){
         cat("  Update precipitation projections\n")
         aux = prec.proj[,c(1,t+74)] 
         names(aux) = c("cell.id", "prec")
@@ -268,7 +264,7 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE
       if(is.harvesting){
         cat ("  B.2. Harvest area \n")
         harv.out = integer()
-        harv.out = harvest.area(land, params, default.tables, scn, is.harvloc=is.harvloc, is.harvprem=is.harvprem) 
+        harv.out = harvest.area(land, params, default.tables, scn, params$is.harvprem) 
       
         ## Tracking
         if(nrow(harv.out)>0){
@@ -378,10 +374,8 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE
       track.spp = rbind(track.spp, cbind(data.frame(run=irun, year=t+params$year.ini),
                                          pivot_wider(as.data.frame.table(table(land$spp)), names_from = Var1, values_from = Freq)))
       
-      
-      
       ## If required, save landscape data frame at the time steps required
-      if(save.land & t %in% out.seq){
+      if(params$save.land.df & t %in% out.seq){
         if(!file.exists(out.path))
           dir.create(file.path(out.path), showWarnings = T) 
         saveRDS(land, file=paste0(out.path, "/landscape_run", irun, "_step", t, ".rds"))
@@ -420,18 +414,17 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE
   
   
   ## If required, save res
-  if(save.land){
-     if(!file.exists(out.path))
+  if(params$save.land.df){
+    if(!file.exists(out.path))
       dir.create(file.path(out.path), showWarnings = T) 
-      saveRDS(res, file=paste0(out.path, "/ap.sbw_results.rds"))
-      
-      fileConn=file(paste0(out.path, "/conditions.txt"))
-      writeLines(c(paste0("scn: ",scn),paste0("is.sbw: ",is.sbw), paste0("is.harvesting: ",is.harvesting),paste0("is.harvloc: ",is.harvloc),
-                   paste0("custom.params: ",custom.params), paste0("rcp: ",rcp),paste0("nrun: ",nrun),paste0("time.horizon: ",time.horizon),paste0("time.save: ",time.save)), fileConn)
-      close(fileConn)
+    saveRDS(res, file=paste0(out.path, "/ap.sbw_results.rds"))
+    fileConn=file(paste0(out.path, "/conditions.txt"))
+    writeLines(c(paste0("scn: ",scn),paste0("is.sbw: ",is.sbw), paste0("is.harvesting: ",is.harvesting),paste0("is.harvloc: ",is.harvloc),
+                 paste0("custom.params: ",custom.params), paste0("rcp: ",rcp),paste0("nrun: ",nrun),paste0("time.horizon: ",params$time.horizon),paste0("time.save: ",time.save)), fileConn)
+    close(fileConn)
   }
   
-  cat("\n", "END OF SIMULATION")
+  cat("\n", "END OF SIMULATION", "\n")
   return(res)
 }#end ap.sbw function
 
