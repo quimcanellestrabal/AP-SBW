@@ -20,7 +20,7 @@
 #'@example:: kk=ap.sbw(scn="scn1", is.sbw=T, is.harvesting=T, is.harvloc=T; custom.params=NA, rcp='rcp45', nrun=3, time.step=1, time.horizon=20, save.land=F, time.save=NA, out.path=NA )
 
 
-ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE, is.harvprem = FALSE,
+ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALSE, is.harvprem = FALSE,
                    custom.params = NA, rcp = NA, nrun = 1, time.step = 1, time.horizon = 80, 
                    save.land = FALSE, time.save=5, out.path = NA, landscape=NULL){
   
@@ -48,9 +48,8 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   source("R/harvest.area.r")
   source("R/intens.def.curr.r")
   source("R/intensity.defoliation.r")
-  source("R/neigh.influence.sbw.spread.r")
   source("R/sbw.outbreak.r")
-  source("R/spread.tonew.r")
+  source("R/sbw.spread.from.source.r")
   source("R/suitability.r")
   ## Function to select items not in a vector
   `%notin%` = Negate(`%in%`)
@@ -71,11 +70,12 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   
   ### 1.1. TIME STEPS ###
   ## Build the discrete time sequence according to time.step
-  time.seq <- seq(1, time.horizon, time.step) 
+  time.seq = seq(1, time.horizon, time.step) 
   
   ## Set out.seq to save function outputs
   if(save.land){
-      out.seq <- seq(1, time.horizon, time.save) 
+      out.seq = seq(0, time.horizon, time.save)
+      out.seq = out.seq[out.seq!=0]
       if(!all(out.seq %in% time.seq)){warning("Not all time steps in the output sequence provided are simulated.", call.=F)}
       if(is.na(out.path)) stop("Directory path to save outputs not provided") } 
   if(!(save.land)){
@@ -83,11 +83,11 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   }
 
   ### 1.2. CELL RESOLUTION ###
-  km2.pixel <- raster::res(mask)[1] * raster::res(mask)[2] / 10^6
+  km2.pixel = raster::res(mask)[1] * raster::res(mask)[2] / 10^6
   
   ### 1.3. PARAMETERS ###
   ## Get the list of default parameters and update user-initialized parameters
-  params <- default.params()
+  params = default.params()
   if(!any(is.na(custom.params))){
     # Check class of custom.params
     if((!inherits(custom.params, "list"))) {
@@ -96,7 +96,7 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
     ## Check that the names of the customized parameters are correct
     if(!all(names(custom.params) %in% names(params)))
       stop("Wrong custom parameters names")
-    params <- custom.params
+    params = custom.params
   }
   
   ### 1.4. SET CLIMATIC PROJECTIONS ###
@@ -108,19 +108,19 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
   }
   
   ### 1.5. INITIALIZE TRACKING DATA FRAMES ###
-  breaks <- c(0,20,40,60,80,100,999)
-  tags <- c("C10","C30", "C50", "C70", "C90", "OLD")
-  track.spp.age.class <- data.frame(run=NA, year=NA, mgmt.unit=NA, spp=NA, age.class=NA, area=NA)
-  track.suit.class <- data.frame(run=NA, year=NA, bioclim.domain=NA, potential.spp=NA, poor=NA, med=NA, good=NA)
+  breaks = c(0,20,40,60,80,100,999)
+  tags = c("C10","C30", "C50", "C70", "C90", "OLD")
+  track.spp.age.class = data.frame(run=NA, year=NA, mgmt.unit=NA, spp=NA, age.class=NA, area=NA)
+  track.suit.class = data.frame(run=NA, year=NA, bioclim.domain=NA, potential.spp=NA, poor=NA, med=NA, good=NA)
   track.sbw.defol.intens = data.frame(run=NA, year=NA, phase=NA, cell.id=NA, spp=NA, curr.intens.def=NA, bioclim.domain=NA)
   track.sbw.defol.intens.sm = data.frame(run=NA, year=NA, phase=NA, curr.intens.def=NA, ncell=NA, pct=NA)
   track.sbw.kill = data.frame(run=NA, year=NA, phase=NA, cell.id=NA, spp=NA, ny.def=NA, curr.intens.def=NA, bioclim.domain=NA)
   track.sbw.kill.sm = data.frame(run=NA, year=NA, spp=NA, ny.def=NA, curr.intens.def=NA, area=NA)
   track.sbw.kill.sm2 = data.frame(run=NA, year=NA, area=NA)
-  track.cut <- data.frame(run=NA, year=NA, mgmt.unit=NA, spp=NA, age=NA)
-  track.cut.sm <- data.frame(run=NA, year=NA, a.age=NA, ncells=NA)
+  track.cut = data.frame(run=NA, year=NA, mgmt.unit=NA, spp=NA, age=NA)
+  track.cut.sm = data.frame(run=NA, year=NA, a.age=NA, ncells=NA)
   track.ap = data.frame(run=NA, year=NA, initial.spp=NA, ap.spp=NA, mgmt.unit=NA)
-  track.ap.sm <- data.frame(run=NA, year=NA, ncells=NA)
+  track.ap.sm = data.frame(run=NA, year=NA, ncells=NA)
   track.change = data.frame(cell.id=NA, run=NA, year=NA, spp=NA, trans=NA, bioclim.domain=NA)
   track.change.sm = data.frame(run=NA, year=NA, trans=NA, n_obs=NA)
   track.spp = data.frame(run=NA, year=NA, BOJ=NA, EPN=NA, ERS=NA, NonFor=NA, OTH.FEU.N=NA, OTH.FEU.S=NA, OTH.RES.N=NA, OTH.RES.S=NA, PET=NA, SAB=NA)
@@ -137,7 +137,7 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
     ## Main landscape data frame 
     tbls = default.tables
     land = landscape
-    land$year_change=NA 
+    land$year.change=NA 
     
     ## Mark the initial sbw phase
     duration.last.outbreak = params$outbreak + params$current.duration
@@ -169,11 +169,12 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       
       ## Print replicate and time step
       cat("\n") 
-      cat(paste0("Replicate ", irun, "/", nrun,". Time step: ", params$year.ini+t-time.step, "-", t+params$year.ini, " Scn: ",scn,"\n"))
+      cat(paste0("Replicate ", irun, "/", nrun,". Time step ", t, ": ", params$year.ini+t-time.step, "-", t+params$year.ini, ". Scn: ",scn,"\n"))
       
       ### 2.1. SET LAND TRANSITION AND LAND NEWSPP 
       land$transition=NA
-      land$new_spp = NA
+      land$new.spp = NA
+      land$spread.weight.multi = NA
       
       ### 2.2. UPDATE CLIMATIC VARIABLES ###
       ## Update climatic variables at each time step if climate change is activated
@@ -182,22 +183,22 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       ## The first time step (t=5) we start with climate 2020-2025
       if(temp.chg & t < time.horizon){
         cat("  Update temperature projections\n")
-        aux <- temp.proj[,c(1,t+74)] 
-        names(aux) <- c("cell.id", "temp")
-        aux[is.na(aux)] <- mean(na.omit(aux[,c(2)])) #*To fix the 2 rows with NA causing troubles.
-        land <- dplyr::select(land, -temp) %>% left_join(aux, by="cell.id")
+        aux = temp.proj[,c(1,t+74)] 
+        names(aux) = c("cell.id", "temp")
+        aux[is.na(aux)] = mean(na.omit(aux[,c(2)])) #*To fix the 2 rows with NA causing troubles.
+        land = dplyr::select(land, -temp) %>% left_join(aux, by="cell.id")
       }
       if(prec.chg & t < time.horizon){
         cat("  Update precipitation projections\n")
-        aux <- prec.proj[,c(1,t+74)] 
-        names(aux) <- c("cell.id", "prec")
-        aux[is.na(aux)] <- mean(na.omit(aux[,c(2)])) #*To fix the 2 rows with NA cousing troubles.
-        land <- dplyr::select(land, -prec) %>% left_join(aux, by="cell.id")
+        aux = prec.proj[,c(1,t+74)] 
+        names(aux) = c("cell.id", "prec")
+        aux[is.na(aux)] = mean(na.omit(aux[,c(2)])) #*To fix the 2 rows with NA cousing troubles.
+        land = dplyr::select(land, -prec) %>% left_join(aux, by="cell.id")
       }
       
       
       ### 2.3. UPDATE SUITABILITY
-      suitab <- suitability(land, params, tbls)
+      suitab = suitability(land, params, tbls)
       
       
       ##################################### PROCESSES OF CHANGE #####################################
@@ -243,11 +244,12 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
         }
 
 
-        # Modifying land data frame
+        # Modify land data frame for killed cells
         land$age[land$cell.id %in% kill.cells] = 0
         land$tssbw = land$tssbw + params$time.step   
-        land$tssbw[land$cell.id %in% kill.cells] <- 0
-        
+        land$tssbw[land$cell.id %in% kill.cells] = 0
+
+        # Copy the sbw variables to the main data frame
         land$ny.def[land$cell.id %in% land.sbw$cell.id] = land.sbw$ny.def
         land$ny.def[land$cell.id %in% kill.cells] = 0
         land$ny.def0[land$cell.id %in% land.sbw$cell.id] = land.sbw$ny.def0
@@ -256,59 +258,62 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
         land$cum.intens.def[land$cell.id %in% kill.cells] = 0
         land$curr.intens.def[land$cell.id %in% land.sbw$cell.id] = land.sbw$curr.intens.def
         land$curr.intens.def[land$cell.id %in% kill.cells] = 0
+        ## Add spread potential of the epidimic phase
+        land$spread.weight.multi[land$cell.id %in% land.sbw$cell.id] = land.sbw$spread.weight.multi
         
       }#end is.sbw
     
        
       ### 2. Harvest area
-      if(is.harvesting & scn!="scn0"){
-      cat ("  B.2. Harvest area \n")
-      harv.out = integer()
-      harv.out = harvest.area(land, params, default.tables, scn, is.harvloc=is.harvloc, is.harvprem=is.harvprem) 
+      if(is.harvesting){
+        cat ("  B.2. Harvest area \n")
+        harv.out = integer()
+        harv.out = harvest.area(land, params, default.tables, scn, is.harvloc=is.harvloc, is.harvprem=is.harvprem) 
       
-      ## Tracking
-      if(nrow(harv.out)>0)
-        {track.cut <- rbind(track.cut, data.frame(run=irun, year=t+params$year.ini, mgmt.unit=harv.out$mgmt.unit, spp=harv.out$spp, age=harv.out$age))
-        track.cut.sm <- rbind(track.cut.sm, data.frame(run=irun, year=t+params$year.ini, a.age=trunc(mean(harv.out$age)), ncells=nrow(harv.out)))}
-      if(nrow(harv.out)==0)
-      {track.cut <- rbind(track.cut, data.frame(run=irun, year=t+params$year.ini, mgmt.unit=NA, spp=NA, age=NA))
-      track.cut.sm <- rbind(track.cut.sm, data.frame(run=irun, year=t+params$year.ini, a.age=NA, ncells=0))
-      track.ap <- rbind(track.ap, data.frame(run=irun, year=t+params$year.ini, initial.spp=NA, ap.spp=NA, mgmt.unit=NA))
-      track.ap.sm <- rbind(track.ap.sm, data.frame(run=irun, year=t+params$year.ini, ncells=NA))}
-      
-      
-      ## Modifying land data frame
-      land$age[land$cell.id %in% harv.out$cell.id] <- 0
-      land$age.class[land$cell.id %in% harv.out$cell.id] <- "C10" ##**** Class C10??
-      land$new_spp[land$cell.id %in% harv.out$cell.id] <- NA
-      land$transition[land$cell.id %in% harv.out$cell.id] <- "Harv"
-      land$year_change[land$cell.id %in% harv.out$cell.id] <- params$year.ini+t
-      no.ap.cells = filter(land, land$cell.id %in% harv.out$cell.id)
-      
-      ### 3. Artificial planting
-      if(nrow(harv.out)>0){
-      cat ("  B.3. Artificial planting \n")
-      ap.out = integer()
-      ap.out <- artificial.planting(land, harv.out$cell.id, suitab, tbls, scn)
-      
-      ## Tracking
-      if(length(ap.out)==0)
-       {track.ap <- rbind(track.ap, data.frame(run=irun, year=t+params$year.ini, initial.spp=NA, ap.spp=NA, mgmt.unit=NA))
-       track.ap.sm <- rbind(track.ap.sm, data.frame(run=irun, year=t+params$year.ini, ncells=NA))}
-      if(length(ap.out)>0){
         ## Tracking
-        track.ap <- rbind(track.ap, data.frame(run=irun, year=t+params$year.ini, initial.spp=ap.out$spp, ap.spp=ap.out$new.spp, mgmt.unit=ap.out$mgmt.unit))
-        track.ap.sm <- rbind(track.ap.sm, data.frame(run=irun, year=t+params$year.ini, ncells=nrow(ap.out)))
-         
-        ## Modifying land data frame
-        land$new_spp[land$cell.id %in% ap.out$cell.id] <- ap.out$new.spp
-        land$transition[land$cell.id %in% ap.out$cell.id] <- "Harv_AP"
-        land$year_change[land$cell.id %in% ap.out$cell.id] <- params$year.ini+t
-        ## Clear cutted cells without artificial planting
-        no.ap.cells = filter(land, land$cell.id %in% harv.out$cell.id & !land$cell.id %in% ap.out$cell.id)
-      }
+        if(nrow(harv.out)>0){
+          track.cut = rbind(track.cut, data.frame(run=irun, year=t+params$year.ini, mgmt.unit=harv.out$mgmt.unit, spp=harv.out$spp, age=harv.out$age))
+          track.cut.sm = rbind(track.cut.sm, data.frame(run=irun, year=t+params$year.ini, a.age=trunc(mean(harv.out$age)), ncells=nrow(harv.out)))
+        }
+        if(nrow(harv.out)==0){
+          track.cut = rbind(track.cut, data.frame(run=irun, year=t+params$year.ini, mgmt.unit=NA, spp=NA, age=NA))
+          track.cut.sm = rbind(track.cut.sm, data.frame(run=irun, year=t+params$year.ini, a.age=NA, ncells=0))
+          track.ap = rbind(track.ap, data.frame(run=irun, year=t+params$year.ini, initial.spp=NA, ap.spp=NA, mgmt.unit=NA))
+          track.ap.sm = rbind(track.ap.sm, data.frame(run=irun, year=t+params$year.ini, ncells=NA))
+        }
       
-      } #end of AP: nrow(harv.out)>0
+        ## Modifying land data frame
+        land$age[land$cell.id %in% harv.out$cell.id] = 0
+        land$age.class[land$cell.id %in% harv.out$cell.id] = "C10" ##**** Class C10??
+        land$new.spp[land$cell.id %in% harv.out$cell.id] = NA
+        land$transition[land$cell.id %in% harv.out$cell.id] = "Harv"
+        land$year.change[land$cell.id %in% harv.out$cell.id] = params$year.ini+t
+        no.ap.cells = filter(land, land$cell.id %in% harv.out$cell.id)
+      
+        ### 3. Artificial planting
+        if(nrow(harv.out)>0){
+          cat ("  B.3. Artificial planting \n")
+          ap.out = integer()
+          ap.out = artificial.planting(land, harv.out$cell.id, suitab, tbls, scn)
+      
+          ## Tracking
+          if(length(ap.out)==0){
+            track.ap = rbind(track.ap, data.frame(run=irun, year=t+params$year.ini, initial.spp=NA, ap.spp=NA, mgmt.unit=NA))
+            track.ap.sm = rbind(track.ap.sm, data.frame(run=irun, year=t+params$year.ini, ncells=NA))
+          }
+          if(length(ap.out)>0){
+            ## Tracking
+            track.ap = rbind(track.ap, data.frame(run=irun, year=t+params$year.ini, initial.spp=ap.out$spp, ap.spp=ap.out$new.spp, mgmt.unit=ap.out$mgmt.unit))
+            track.ap.sm = rbind(track.ap.sm, data.frame(run=irun, year=t+params$year.ini, ncells=nrow(ap.out)))
+         
+            ## Modifying land data frame
+            land$new.spp[land$cell.id %in% ap.out$cell.id] = ap.out$new.spp
+            land$transition[land$cell.id %in% ap.out$cell.id] = "Harv_AP"
+            land$year.change[land$cell.id %in% ap.out$cell.id] = params$year.ini+t
+            ## Clear cutted cells without artificial planting
+            no.ap.cells = filter(land, land$cell.id %in% harv.out$cell.id & !land$cell.id %in% ap.out$cell.id)
+          }
+        } #end of AP: nrow(harv.out)>0
       } #end is.harvesting
       
       
@@ -317,31 +322,33 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       
       ## After harvesting
       if(exists("no.ap.cells")){
-        land$new_spp[land$cell.id %in% no.ap.cells$cell.id] <- forest.transition(land, no.ap.cells$cell.id, suitab, params, default.tables, type.trans="C")
+        land$new.spp[land$cell.id %in% no.ap.cells$cell.id] = forest.transition(land, no.ap.cells$cell.id, suitab, params, default.tables, type.trans="C")
         land$transition[land$cell.id %in% no.ap.cells$cell.id] = "Harv_ForTrans"
-        land$year_change[land$cell.id %in% no.ap.cells$cell.id] <- params$year.ini+t
-        land$tscomp[land$cell.id %in% no.ap.cells$cell.id] <- 0}
+        land$year.change[land$cell.id %in% no.ap.cells$cell.id] = params$year.ini+t
+        land$tscomp[land$cell.id %in% no.ap.cells$cell.id] = 0
+      }
         
-    
       ## After SBW outbreak
       if(is.sbw){
         if(exists("kill.cells")){
-        land$new_spp[land$cell.id %in% kill.cells] <- forest.transition(land, kill.cells, suitab, params, tbls, type.trans="O")
+        land$new.spp[land$cell.id %in% kill.cells] = forest.transition(land, kill.cells, suitab, params, tbls, type.trans="O")
         land$transition[land$cell.id %in% kill.cells] = "SBW_ForTrans"
-        land$year_change[land$cell.id %in% kill.cells] <- params$year.ini+t
-        land$tscomp[land$cell.id %in% kill.cells] <- 0}}
+        land$year.change[land$cell.id %in% kill.cells] = params$year.ini+t
+        land$tscomp[land$cell.id %in% kill.cells] = 0}
+      }
         
         
       ## Natural succession of tree spp at every 40 years starting at Time Since Chancge of Species Composition = 70
-      chg.comp.cells <- filter(land, (age-age.matu) %in% seq(40,400,40) & tscomp>=70) %>% dplyr::select(cell.id)
+      chg.comp.cells = filter(land, (age-age.matu) %in% seq(40,400,40) & tscomp>=70) %>% dplyr::select(cell.id)
       if(length(unlist(chg.comp.cells))>0){
-        land$new_spp[land$cell.id %in% unlist(chg.comp.cells)] <- forest.transition(land, unlist(chg.comp.cells), suitab, params,default.tables, type.trans="S")  
+        land$new.spp[land$cell.id %in% unlist(chg.comp.cells)] = forest.transition(land, unlist(chg.comp.cells), suitab, params,default.tables, type.trans="S")  
         land$transition[land$cell.id %in% unlist(chg.comp.cells)] = "NatTrans"
-        land$year_change[land$cell.id %in% unlist(chg.comp.cells)] <- params$year.ini+t}
-        
+        land$year.change[land$cell.id %in% unlist(chg.comp.cells)] = params$year.ini+t
+      }
+      
         
       ### 5. UPDATE LAND.df
-      land$spp = as.factor(ifelse(is.na(land$new_spp),as.character(land$spp), land$new_spp))
+      land$spp = as.factor(ifelse(is.na(land$new.spp),as.character(land$spp), land$new.spp))
       land$age = land$age + params$time.step
       land$tscomp = land$tscomp + params$time.step
       
@@ -349,23 +356,22 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       ##################################### TRACKING AND SPATIAL OUTS #####################################
       cat ("  B.5. Traking spatial outputs \n")
       ## Age classes distribution per species and management unit **different than age.class???      
-      land$age.class <- cut(land$age, breaks=breaks, include.lowest=TRUE, right=TRUE, labels=tags)
-      track.spp.age.class <- rbind(track.spp.age.class, data.frame(run=irun, year=t+params$year.ini, 
+      land$age.class = cut(land$age, breaks=breaks, include.lowest=TRUE, right=TRUE, labels=tags)
+      track.spp.age.class = rbind(track.spp.age.class, data.frame(run=irun, year=t+params$year.ini, 
                                                                    group_by(land, mgmt.unit, spp) %>% count(age.class) %>%  
                                                                      mutate(area=n*km2.pixel)) %>% dplyr::select(-n))
       ## Suitability classes distribution per bioclim.domain   
-      suitab <- suitability(land, params, tbls) 
-      aux <- left_join(suitab, dplyr::select(land, cell.id, bioclim.domain), by="cell.id") %>%
+      suitab = suitability(land, params, tbls) 
+      aux = left_join(suitab, dplyr::select(land, cell.id, bioclim.domain), by="cell.id") %>%
         group_by(bioclim.domain, potential.spp) %>% summarise(poor=sum(suit.clim==0)*km2.pixel, 
                                                               med=sum(suit.clim==0.5)*km2.pixel, good=sum(suit.clim==1)*km2.pixel) 
-      track.suit.class <- rbind(track.suit.class, data.frame(run=irun, year=t+params$year.ini, aux))
+      track.suit.class = rbind(track.suit.class, data.frame(run=irun, year=t+params$year.ini, aux))
       rm(suitab)
       
-      
       ## Track change
-      track.change <- rbind(track.change, na.omit(data.frame(cell.id=land$cell.id, run=irun, year=t+params$year.ini, spp=land$spp, trans=land$transition, bioclim.domain=land$bioclim.domain)))
-      aux <- na.omit(track.change %>% group_by(run, year, trans) %>% summarise(n_obs = n()))
-      track.change.sm <- rbind(track.change.sm,aux)
+      track.change = rbind(track.change, na.omit(data.frame(cell.id=land$cell.id, run=irun, year=t+params$year.ini, spp=land$spp, trans=land$transition, bioclim.domain=land$bioclim.domain)))
+      aux = na.omit(track.change %>% group_by(run, year, trans) %>% summarise(n_obs = n()))
+      track.change.sm = rbind(track.change.sm,aux)
       
       
       ## Track change of species
@@ -378,16 +384,14 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       if(save.land & t %in% out.seq){
         if(!file.exists(out.path))
           dir.create(file.path(out.path), showWarnings = T) 
-        saveRDS(land, file=paste0(out.path, "/landscape_", irun, "run_", params$year.ini+t, "t.rds"))
+        saveRDS(land, file=paste0(out.path, "/landscape_run", irun, "_step", t, ".rds"))
       }
       
- 
       ### Cleaning global environment 
-      rm(sbw.out, land.sbw, kill.cells, ap.out, chg.comp.cells, harv.out, no.ap.cells)
+      rm(sbw.out, land.sbw, kill.cells, chg.comp.cells)
+      if(is.harvesting) 
+        rm(ap.out, harv.out, no.ap.cells)
       
-      
-  cat(paste0("       end of Time step: ", params$year.ini+t-time.step, "-", t+params$year.ini,"  \n"))
-  
       ## Stop the current run if phase changes
       if(params$stop.end.phase & current.phase!=phase){
        break()
@@ -395,13 +399,11 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       current.phase = phase
   
     }#end t
-    
-  cat(paste0("       end of Replicate=",irun, "/", nrun,"  \n \n"))
   }#end irun
   
   cat("\n", "C. Build outputs...\n")
   
-  res <- list(SppByAgeClass = track.spp.age.class[-1,],
+  res = list(SppByAgeClass = track.spp.age.class[-1,],
               SuitabilityClass = track.suit.class[-1,],
               LandChange = track.change[-1,],
               LandChange.sm = track.change.sm[-1,],
@@ -423,7 +425,7 @@ ap.sbw <- function(scn, is.sbw = FALSE, is.harvesting = FALSE, is.harvloc = FALS
       dir.create(file.path(out.path), showWarnings = T) 
       saveRDS(res, file=paste0(out.path, "/ap.sbw_results.rds"))
       
-      fileConn<-file(paste0(out.path, "/conditions.txt"))
+      fileConn=file(paste0(out.path, "/conditions.txt"))
       writeLines(c(paste0("scn: ",scn),paste0("is.sbw: ",is.sbw), paste0("is.harvesting: ",is.harvesting),paste0("is.harvloc: ",is.harvloc),
                    paste0("custom.params: ",custom.params), paste0("rcp: ",rcp),paste0("nrun: ",nrun),paste0("time.horizon: ",time.horizon),paste0("time.save: ",time.save)), fileConn)
       close(fileConn)
