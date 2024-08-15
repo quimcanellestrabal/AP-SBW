@@ -8,8 +8,6 @@
 #' @param target.cell.ids A vector of \code{cell.id} codes for those cells that may change stand composition
 #' @param suitab A data frame with climatic suitability and soil suitability for potential colonizing species 
 #' for each forest stand. It is the result of the function \code{suitability()}
-#' @param tbls A list of default input tables as in \code{data(default.tables()} or 
-#' a customized list of input tables
 #' @param scn A character indicating the type of transition according artificial planting scenario: \code{A} for "scn1", etc.
 #' 
 #' @return A vector with the name of the new species / group of species
@@ -25,16 +23,13 @@
 #' params = default.params()
 #' suitab = suitability(landscape, params, default.tables) 
 #' 
-#' land=landscape; target.cells=landscape$cell.id[runif(20,1,nrow(landscape))]; tbls=default.tables; scn="scn1"
-#' 
-#' library(stringr); library(dplyr); library(RANN)
-#' 
-#' artificial.planting(landscape, landscape$cell.id[runif(20,1,nrow(landscape))], suitab, default.tables, scn = "scn1")
+#' land=landscape; target.cells=landscape$cell.id[runif(20,1,nrow(landscape))]
+#' artificial.planting(landscape, landscape$cell.id[runif(20,1,nrow(landscape))], suitab, params)
 #' 
 
 
 
-artificial.planting = function(land, target.cells, suitab, tbls, scn){   
+artificial.planting = function(land, target.cells, suitab, params){   
   
   # 1. If target data.frame is empty
   if(length(target.cells)==0)
@@ -42,7 +37,7 @@ artificial.planting = function(land, target.cells, suitab, tbls, scn){
   
   
   # 2. Artificial planting according to SCN
-  ap.target.cells = sample(target.cells, round(length(target.cells)*tbls$scn.df[tbls$scn.df$ScnName==scn,3]))
+  ap.target.cells = sample(target.cells, round(length(target.cells)*params$ap.rate))  # tbls$scn.df[tbls$scn.df$ScnName==scn,3] = APRate
   no.ap.cells <- target.cells[!(target.cells %in% ap.target.cells)]
   
   ## If target data.frame is empty
@@ -55,7 +50,8 @@ artificial.planting = function(land, target.cells, suitab, tbls, scn){
   for(ispp in levels(land$spp)){
     aux <- data.frame("spp"=c(ispp,ispp),
                          "potential.spp"=c("EPN","PET"), 
-                         "ptrans"=c(tbls$scn.df[tbls$scn.df$ScnName==scn,4],tbls$scn.df[tbls$scn.df$ScnName==scn,5]))
+                         "ptrans"= c(params$epn.rege.rate, pet.rege.rate)) # EPNRate and PETRate
+                        # c(tbls$scn.df[tbls$scn.df$ScnName==scn,4], tbls$scn.df[tbls$scn.df$ScnName==scn,5]))
     prob.reg <- rbind(prob.reg, aux)
   
   }
