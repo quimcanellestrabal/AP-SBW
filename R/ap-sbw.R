@@ -29,7 +29,6 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
   library(RANN)
   library(sp)
   library(raster)
-  # library(reshape)
   library(scales)
   library(tidyverse) 
   options(dplyr.summarise.inform=F)
@@ -165,7 +164,8 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
       
       ## Print replicate and time step
       cat("\n") 
-      cat(paste0("Replicate ", irun, "/", nrun,". Time step ", t, ": ", params$year.ini+t-params$time.step, "-", t+params$year.ini, ". Scn: ",scn,"\n"))
+      cat(paste0("Replicate ", irun, "/", nrun,". Time step ", t, "/", params$time.horizon, ": ", 
+                 params$year.ini+t-params$time.step, "-", t+params$year.ini, ". Scn: ",scn,"\n"))
       
       ### 2.1. SET LAND TRANSITION AND LAND NEWSPP 
       land$transition=NA
