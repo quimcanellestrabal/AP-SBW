@@ -13,7 +13,7 @@
 #'  
 #' @example 
 #' params = default.params()
-#' res = ap.sbw(scn="test", is.sbw=T, is.harvesting=T, is.harvloc=T; custom.params=params, 
+#' res = ap.sbw(scn="test", is.sbw=T, is.harvesting=T, custom.params=params, 
 #' rcp='rcp45', nrun=3, out.path=NA)
 
 
@@ -53,7 +53,7 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
   load("data/mask.rda")
   load("data/prec_rcp45_ouranos.rda")
   load("data/temp_rcp45_ouranos.rda")
-  load("data/default.tables2.rda")
+  load("data/default.tables.rda")  # as v2 but without scn.df table
   if(is.null(landscape)){
     load("data/landscape.rda")
   }
@@ -83,7 +83,7 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
   
   ## Set out.seq to save function outputs
   if(params$save.land.df){
-      out.seq = seq(0, params$time.horizon, params$time.save)
+      out.seq = seq(0, params$time.horizon, params$freq.save)
       out.seq = out.seq[out.seq!=0]
       if(!all(out.seq %in% time.seq)){warning("Not all time steps in the output sequence provided are simulated.", call.=F)}
       if(is.na(out.path)) stop("Directory path to save outputs not provided") } 
@@ -92,6 +92,7 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
   }
 
   ### 1.3. CELL RESOLUTION ###
+  cell.res = res(mask)[1] ## cell resolution in meters
   km2.pixel = raster::res(mask)[1] * raster::res(mask)[2] / 10^6
   
   ### 1.4. SET CLIMATIC PROJECTIONS ###
@@ -264,7 +265,7 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
       if(is.harvesting){
         cat ("  B.2. Harvest area \n")
         harv.out = integer()
-        harv.out = harvest.area(land, params, default.tables, scn, params$is.harvprem) 
+        harv.out = harvest.area(land, params, params$is.harvprem) 
       
         ## Tracking
         if(nrow(harv.out)>0){
@@ -287,10 +288,10 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
         no.ap.cells = filter(land, land$cell.id %in% harv.out$cell.id)
       
         ### 3. Artificial planting
+        ap.out = integer()
         if(nrow(harv.out)>0){
           cat ("  B.3. Artificial planting \n")
-          ap.out = integer()
-          ap.out = artificial.planting(land, harv.out$cell.id, suitab, tbls, scn)
+          ap.out = artificial.planting(land, harv.out$cell.id, suitab, params)
       
           ## Tracking
           if(length(ap.out)==0){
@@ -419,8 +420,8 @@ ap.sbw = function(scn, is.sbw = FALSE, is.harvesting = FALSE, custom.params = NA
       dir.create(file.path(out.path), showWarnings = T) 
     saveRDS(res, file=paste0(out.path, "/ap.sbw_results.rds"))
     fileConn=file(paste0(out.path, "/conditions.txt"))
-    writeLines(c(paste0("scn: ",scn),paste0("is.sbw: ",is.sbw), paste0("is.harvesting: ",is.harvesting),paste0("is.harvloc: ",is.harvloc),
-                 paste0("custom.params: ",custom.params), paste0("rcp: ",rcp),paste0("nrun: ",nrun),paste0("time.horizon: ",params$time.horizon),paste0("time.save: ",time.save)), fileConn)
+    writeLines(c(paste0("scn: ",scn),paste0("is.sbw: ",is.sbw), paste0("is.harvesting: ",is.harvesting), 
+                 paste0("custom.params: ",custom.params), paste0("rcp: ",rcp),paste0("nrun: ",nrun),paste0("time.horizon: ",params$time.horizon),paste0("freq.save: ",params$freq.save)), fileConn)
     close(fileConn)
   }
   

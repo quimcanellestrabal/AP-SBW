@@ -7,8 +7,8 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   # 0.  Fix function  
   `%notin%` = Negate(`%in%`)
 
-  ## Determine cell resolution in km
-  cell.size.km = (mask@extent[2] - mask@extent[1])/ncol(mask) / 10^3
+  ## Determine cell resolution in meters
+  cell.size = (mask@extent[2] - mask@extent[1])/ncol(mask) 
   
   ## 1. Defliation in the different phases of the SBW outbreak
   ## 08/04/24: In the pre-epidemic phase, the epicenters should be only SAB or EPN. 
@@ -77,7 +77,8 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     ## The function 'spread.tonew' returns cell.ids
     ## The radius has to be variable to allow spreading further away or limit outbreak
     radius = rdunif(1, params$radius.outbreak.mid-params$radius.outbreak.range, params$radius.outbreak.mid+params$radius.outbreak.range) 
-    sbw.new.sprd = sbw.spread.from.source(land, nc=ncol(mask), wind_dir=params$wind_dir, radius=radius)
+    radius = pmax(radius, 1)
+    sbw.new.sprd = sbw.spread.from.source(land, nc=ncol(mask), wind_dir=params$wind_dir, radius=radius, cell.size=cell.size)
     sbw.new.sprd$effective_spread = runif(nrow(sbw.new.sprd), 0 , 1) <= sbw.new.sprd$spread_potential_multi
     ## Add spread potential (final_w_multi) to 'land' df
     land$spread.weight.multi[land$cell.id %in% sbw.new.sprd$target] = sbw.new.sprd$final_w_multi
