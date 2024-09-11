@@ -102,7 +102,7 @@ sbw.spread.from.source = function(land, nc, wind_dir, radius, cell.size, side = 
   # Each cell of the neighborhood is given an angle according to the convention: N=0, E=90, S=180, W=270
   G$theta <- atan2(G$x, G$y) + 2*pi*abs(sign(G$x))*(1/2)*(1-sign(G$x)) #in rads
   G$angle <- (180/pi)*G$theta #in degrees
-  
+
   # Weight wind: 
   # cells in the direction of the prevailing wind (wind_dir) are given higher weights
   # Presenting wind_dir is a user-define number identical for all cells.

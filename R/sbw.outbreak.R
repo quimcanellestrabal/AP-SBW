@@ -31,7 +31,7 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
     ## ID (or index or indicator ;-)) of the focus cells of the epicenters
     sbw.new.sprd = epicenter
     
-    ## Find between 20 to 40 neighs for teach epicenter and add to sbw.new.sprd.
+    ## Find between 20 to 40 neighs for each epicenter and add to sbw.new.sprd.
     ## Each epicenter core has a different size indicated by the kmin and kmax parameters!
     for(i in 1:length(epicenter)){
       neighs = nn2(land[,c("x", "y")], land[land$cell.id==epicenter[i], c("x", "y")],
@@ -72,6 +72,7 @@ sbw.outbreak = function(land, params, tbls, preoutbreak=1, outbreak=1, calm=1, c
   }
 
   if(outbreak>0){
+
     cat("epidemic phase ", "\n")
     ## Spatial spreading of the current outbreak to cells not yet defoliated, that is, cells with ny.def0>=5 & tssbw>=30
     ## The function 'spread.tonew' returns cell.ids
